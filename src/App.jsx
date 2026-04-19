@@ -187,7 +187,7 @@ function LoginPage({ onLogin }) {
   const [loading, setLoading] = useState(false);
   const submit = async (e) => {
     e.preventDefault(); setErr(""); setLoading(true);
-    try { const d = await api("/auth/login", { method: "POST", body: { username, password } }); onLogin(d.user); }
+    try { const d = await api("/auth?action=login", { method: "POST", body: { username, password } }); onLogin(d.user); }
     catch (e) { setErr(e.message); }
     finally { setLoading(false); }
   };
@@ -323,7 +323,7 @@ export default function App(){
   const toggleTheme=()=>setTheme(t=>t==="light"?"dark":"light");
 
   // Auth check on mount
-  useEffect(()=>{api("/auth/me").then(d=>{setUser(d.user);setAuthLoading(false)}).catch(()=>setAuthLoading(false))},[]);
+  useEffect(()=>{api("/auth?action=me").then(d=>{setUser(d.user);setAuthLoading(false)}).catch(()=>setAuthLoading(false))},[]);
 
   // Load campaigns when authenticated
   useEffect(()=>{if(user)api("/campaigns").then(setCampaigns).catch(()=>{})},[user]);
@@ -332,24 +332,24 @@ export default function App(){
   useEffect(()=>{if(activeCampaign){api("/offers?campaignId="+activeCampaign._id).then(o=>{setOffers(o);setCid(null);setView("offers")}).catch(()=>{});setMarginPct(activeCampaign.marginPct||30)}},[activeCampaign]);
 
   const login=u=>{setUser(u);setAuthLoading(false)};
-  const logout=async()=>{try{await api("/auth/logout",{method:"POST"})}catch{}setUser(null);setActiveCampaign(null);setOffers([]);setCampaigns([])};
+  const logout=async()=>{try{await api("/auth?action=logout",{method:"POST"})}catch{}setUser(null);setActiveCampaign(null);setOffers([]);setCampaigns([])};
 
   // Campaign CRUD
   const newCampaign=async()=>{try{const c=await api("/campaigns",{method:"POST",body:{name:"Campaign "+(campaigns.length+1),marginPct:30}});setCampaigns(p=>[c,...p]);setActiveCampaign(c);setView("offers")}catch{}};
-  const archiveCampaign=async id=>{try{await api("/campaigns/"+id,{method:"DELETE"});setCampaigns(p=>p.filter(c=>c._id!==id));if(activeCampaign?._id===id){setActiveCampaign(null);setOffers([]);setView("campaigns")}}catch{}};
-  const updateCampaignName=async(name)=>{if(!activeCampaign)return;try{const u=await api("/campaigns/"+activeCampaign._id,{method:"PUT",body:{name}});setActiveCampaign(u);setCampaigns(p=>p.map(c=>c._id===u._id?{...c,name:u.name}:c))}catch{}};
-  const updateMargin=async(v)=>{setMarginPct(v);if(!activeCampaign)return;try{await api("/campaigns/"+activeCampaign._id,{method:"PUT",body:{marginPct:v}})}catch{}};
+  const archiveCampaign=async id=>{try{await api("/campaigns?id="+id,{method:"DELETE"});setCampaigns(p=>p.filter(c=>c._id!==id));if(activeCampaign?._id===id){setActiveCampaign(null);setOffers([]);setView("campaigns")}}catch{}};
+  const updateCampaignName=async(name)=>{if(!activeCampaign)return;try{const u=await api("/campaigns?id="+activeCampaign._id,{method:"PUT",body:{name}});setActiveCampaign(u);setCampaigns(p=>p.map(c=>c._id===u._id?{...c,name:u.name}:c))}catch{}};
+  const updateMargin=async(v)=>{setMarginPct(v);if(!activeCampaign)return;try{await api("/campaigns?id="+activeCampaign._id,{method:"PUT",body:{marginPct:v}})}catch{}};
 
   // Offer CRUD
   const addOffer=async()=>{if(!activeCampaign)return;const o=defaultOffer(offers.length+1);try{const saved=await api("/offers",{method:"POST",body:{...o,campaignId:activeCampaign._id}});setOffers(p=>[...p,saved]);setCid(saved._id);setStep(0);setTxns(defaultTxns(saved.activity));setView("editor")}catch{}};
   const openOffer=id=>{setCid(id);setStep(0);const t=offers.find(o=>(o._id||o.id)===id);setTxns(defaultTxns(t?.activity));setLastSim(null);setView("editor")};
   const dupOffer=async id=>{const s=offers.find(o=>(o._id||o.id)===id);if(!s||!activeCampaign)return;const{_id,createdBy,lastModifiedBy,createdAt,updatedAt,...data}=s;try{const saved=await api("/offers",{method:"POST",body:{...data,campaignId:activeCampaign._id,name:s.name+" (copy)"}});setOffers(p=>[...p,saved]);setCid(saved._id);setStep(0);setView("editor")}catch{}};
-  const confirmDel=async()=>{if(!delTarget)return;try{await api("/offers/"+delTarget,{method:"DELETE"});setOffers(p=>p.filter(o=>(o._id||o.id)!==delTarget));if(cid===delTarget){const remaining=offers.filter(o=>(o._id||o.id)!==delTarget);setCid(remaining.length>0?(remaining[remaining.length-1]._id||remaining[remaining.length-1].id):null);if(remaining.length===0)setView("offers")}}catch{}setDelTarget(null)};
+  const confirmDel=async()=>{if(!delTarget)return;try{await api("/offers?id="+delTarget,{method:"DELETE"});setOffers(p=>p.filter(o=>(o._id||o.id)!==delTarget));if(cid===delTarget){const remaining=offers.filter(o=>(o._id||o.id)!==delTarget);setCid(remaining.length>0?(remaining[remaining.length-1]._id||remaining[remaining.length-1].id):null);if(remaining.length===0)setView("offers")}}catch{}setDelTarget(null)};
 
   // Debounced auto-save for offer updates
   const upd=useCallback(c=>{setOffers(p=>p.map(o=>(o._id||o.id)===cid?{...o,...c}:o));
     if(saveTimer.current)clearTimeout(saveTimer.current);setSaveStatus("saving");
-    saveTimer.current=setTimeout(async()=>{if(!cid)return;try{await api("/offers/"+cid,{method:"PUT",body:c});setSaveStatus("saved");setTimeout(()=>setSaveStatus(""),2000)}catch{setSaveStatus("error")}},2000);
+    saveTimer.current=setTimeout(async()=>{if(!cid)return;try{await api("/offers?id="+cid,{method:"PUT",body:c});setSaveStatus("saved");setTimeout(()=>setSaveStatus(""),2000)}catch{setSaveStatus("error")}},2000);
   },[cid]);
 
   if(authLoading)return<><style>{css}</style><div className="login-page"><div style={{color:"var(--text3)"}}>Loading...</div></div></>;
