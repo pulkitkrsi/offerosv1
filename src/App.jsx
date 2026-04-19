@@ -206,6 +206,8 @@ function LoginPage({ onLogin }) {
 
 /* ── Campaigns List ── */
 function CampaignsList({ campaigns, onSelect, onNew, onArchive }) {
+  const [delId, setDelId] = useState(null);
+  const delName = delId ? (campaigns.find(c => c._id === delId)?.name || "") : "";
   return <div>
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
       <div><div style={{ fontSize: 10, fontWeight: 600, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--text3)", marginBottom: 4 }}>Workspace</div><h1 style={{ fontFamily: "'Instrument Serif',serif", fontSize: 28, fontWeight: 400 }}>Campaigns</h1></div>
@@ -213,6 +215,9 @@ function CampaignsList({ campaigns, onSelect, onNew, onArchive }) {
     </div>
     <div className="campaign-list">
       {campaigns.map(c => <div key={c._id} className="campaign-card" onClick={() => onSelect(c)}>
+        <div className="offer-card-actions" style={{opacity:1}} onClick={e => e.stopPropagation()}>
+          <button className="del" onClick={() => setDelId(c._id)} title="Archive campaign">×</button>
+        </div>
         <div className={"campaign-card-status sbadge " + (c.status === "active" ? "bg-green" : c.status === "completed" ? "bg-blue" : "bg-muted")}>{c.status || "draft"}</div>
         <div className="campaign-card-name">{c.name}</div>
         <div className="campaign-card-meta">
@@ -227,6 +232,7 @@ function CampaignsList({ campaigns, onSelect, onNew, onArchive }) {
         <div style={{ fontSize: 12 }}>Create your first campaign to get started</div>
       </div>}
     </div>
+    {delId && <ConfirmModal title="Archive campaign?" msg={'"' + delName + '" and all its offers will be archived. You can recover it from MongoDB if needed.'} onConfirm={() => { onArchive(delId); setDelId(null); }} onCancel={() => setDelId(null)} />}
   </div>;
 }
 
