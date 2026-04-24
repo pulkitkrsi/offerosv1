@@ -17,7 +17,11 @@ const REWARDS_FOR = { "Charging session": ["Cashback", "Discount", "Coupon"], "W
 
 let _oc = 0;
 const uid = () => "o" + (++_oc) + "_" + Date.now();
-const defaultOffer = (n) => ({ id: uid(), name: "Offer " + n, segments: [], activity: "Charging session", wpre: false, w: "", wa: "Campaign start date", dist: "spread", wsx: "", wsxType: "fixed", wpun: "", wpc: "", reward: "Cashback", tiers: [{ s: "1", pct: "7" }, { s: "2", pct: "10" }, { s: "3", pct: "12" }], dpct: "", xpwpct: "", p: "", un: "", ux: "", nx: "", cy: "", dy: "", wm: "", sn: "", sx: "", t: "30", te: "", ce: "30", ctMode: "off", wtMode: "none", wtSlabs: [{ min: "100", max: "499", pct: "5" }, { min: "500", max: "999", pct: "8" }, { min: "1000", max: "", pct: "12" }], rc: null, rcFileName: "", rcCount: 0, rcLogic: "intersection", simTxns: null, simResult: null, simRoi: null });
+const defaultOffer = (n) => ({ id: uid(), name: "Offer " + n, segments: [], activity: "Charging session", wpre: false, w: "", wa: "Campaign start date", dist: "spread", wsx: "", wsxType: "fixed", wpun: "", wpc: "", reward: "Cashback", tiers: [{ s: "1", pct: "7" }, { s: "2", pct: "10" }, { s: "3", pct: "12" }], dpct: "", xpwpct: "", p: "", un: "", ux: "", nx: "", cy: "", dy: "", wm: "", sn: "", sx: "", t: "30", te: "", ce: "30", ctMode: "off", wtMode: "none", wtSlabs: [{ min: "100", max: "499", pct: "5" }, { min: "500", max: "999", pct: "8" }, { min: "1000", max: "", pct: "12" }], rc: null, rcFileName: "", rcCount: 0, rcLogic: "intersection", simTxns: null, simResult: null, simRoi: null, startDate: new Date().toISOString().split("T")[0], paused: false });
+function getOfferStatus(o) { if (o.paused) return "paused"; const today = new Date(); const sd = o.startDate ? new Date(o.startDate) : null; if (!sd) return "draft"; const days = parseInt(o.t) || 30; const ed = o.te ? new Date(o.te) : new Date(sd.getTime() + days * 86400000); if (today < sd) return "scheduled"; if (today > ed) return "expired"; return "active"; }
+function getOfferEndDate(o) { const sd = o.startDate ? new Date(o.startDate) : new Date(); const days = parseInt(o.t) || 30; return o.te ? new Date(o.te) : new Date(sd.getTime() + days * 86400000); }
+const STATUS_COLORS = { active: "var(--green)", scheduled: "var(--blue)", paused: "var(--amber)", expired: "var(--text3)", draft: "var(--text3)" };
+const STATUS_BG = { active: "var(--green-bg)", scheduled: "var(--blue-bg)", paused: "var(--amber-bg)", expired: "var(--bg3)", draft: "var(--bg3)" };
 const defaultTxns = (a) => a === "Wallet top-up" ? [{ date: "", amount: "" }] : [{ date: "", units: "", rate: "22" }];
 function validateStep(o, s) { if (!o) return false; if (s === 0) return o.segments.length > 0; if (s === 1) return !!o.activity; if (s === 2) { if (o.wpre) return true; if (o.reward === "Cashback") return o.tiers.length > 0 && o.tiers.some(t => parseFloat(t.pct) > 0); if (o.reward === "Discount") return parseFloat(o.dpct) > 0; if (o.reward === "ChargeXP") return parseFloat(o.xpwpct) > 0; if (o.reward === "Coupon") return !!o.p; return false; } if (s === 4) return parseFloat(o.t) > 0; return true; }
 function detectConflicts(offers) { const f = {}; for (let i = 0; i < offers.length; i++) for (let j = i + 1; j < offers.length; j++) { const a = offers[i], b = offers[j]; const ov = a.segments.filter(s => b.segments.includes(s) || s === "All" || b.segments.includes("All")); if (ov.length > 0 && (a.wpre ? "Pre-load" : a.reward) === (b.wpre ? "Pre-load" : b.reward) && a.activity === b.activity) { f[a.id] = f[a.id] || []; f[a.id].push("Overlaps with " + b.name); f[b.id] = f[b.id] || []; f[b.id].push("Overlaps with " + a.name); } } return f; }
@@ -292,6 +296,120 @@ function HomeDashboard({ campaigns, allOffers }) {
 }
 
 /* ── Campaigns List ── */
+/* ── Business Impact Projector ── */
+function BusinessProjector({ offers, marginPct, projInputs, onSave }) {
+  const [inp, setInp] = useState(projInputs || { targetUsers: "", redemptionRate: "15", avgSessions: "4", avgKwh: "12", avgTopup: "300", ratePerKwh: "22", cpa: "" });
+  const [open, setOpen] = useState(!!projInputs?.targetUsers);
+  const save = (v) => { const n = { ...inp, ...v }; setInp(n); onSave(n); };
+  const tu = parseFloat(inp.targetUsers) || 0, rr = (parseFloat(inp.redemptionRate) || 0) / 100, as = parseFloat(inp.avgSessions) || 0, ak = parseFloat(inp.avgKwh) || 0, at = parseFloat(inp.avgTopup) || 0, rpk = parseFloat(inp.ratePerKwh) || 22, cpa = parseFloat(inp.cpa) || 0;
+  const redeemed = Math.round(tu * rr);
+  // Per-user reward from simulation averages
+  let avgRewardPerUser = 0; offers.forEach(o => { if (o.simResult && o.simResult.qualTxns > 0) avgRewardPerUser += o.simResult.totalReward / Math.max(o.simResult.qualTxns, 1) * as; });
+  const totalRewardCost = redeemed * avgRewardPerUser;
+  const totalRevenue = redeemed * as * ak * rpk;
+  const totalMargin = totalRevenue * (marginPct / 100);
+  const totalAcqCost = tu * cpa;
+  const netPL = totalMargin - totalRewardCost - totalAcqCost;
+  const breakEvenRR = totalMargin > 0 && avgRewardPerUser > 0 ? ((avgRewardPerUser * tu + totalAcqCost) / (totalMargin / rr || 1) * 100) : 0;
+  const costPerRedeemed = redeemed > 0 ? (totalRewardCost + totalAcqCost) / redeemed : 0;
+  const hasData = tu > 0 && offers.some(o => o.simResult);
+  return <div style={{ marginBottom: 24 }}>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", padding: "12px 0" }} onClick={() => setOpen(!open)}>
+      <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--accent)" }}>Business Impact Projection</div>
+      <span style={{ color: "var(--text3)", fontSize: 14 }}>{open ? "▾" : "▸"}</span>
+    </div>
+    {open && <div className="card">
+      <div style={{ fontSize: 12, color: "var(--text3)", marginBottom: 16 }}>Enter your business assumptions to project campaign-wide costs and returns</div>
+      <div className="grid2" style={{ marginBottom: 14 }}>
+        <div className="field"><div className="field-label">Total target users</div><input type="number" value={inp.targetUsers} placeholder="5000" onChange={e => save({ targetUsers: e.target.value })} /></div>
+        <div className="field"><div className="field-label">Expected redemption rate (%)</div><input type="number" value={inp.redemptionRate} placeholder="15" onChange={e => save({ redemptionRate: e.target.value })} /></div>
+      </div>
+      <div className="grid2" style={{ marginBottom: 14 }}>
+        <div className="field"><div className="field-label">Avg sessions per user</div><input type="number" value={inp.avgSessions} placeholder="4" onChange={e => save({ avgSessions: e.target.value })} /></div>
+        <div className="field"><div className="field-label">Avg kWh per session</div><input type="number" value={inp.avgKwh} placeholder="12" onChange={e => save({ avgKwh: e.target.value })} /></div>
+      </div>
+      <div className="grid2" style={{ marginBottom: 14 }}>
+        <div className="field"><div className="field-label">Rate per kWh (₹)</div><input type="number" value={inp.ratePerKwh} placeholder="22" onChange={e => save({ ratePerKwh: e.target.value })} /></div>
+        <div className="field"><div className="field-label">Cost per acquisition (₹)</div><input type="number" value={inp.cpa} placeholder="0" onChange={e => save({ cpa: e.target.value })} /></div>
+      </div>
+      {hasData && <><div style={{ fontSize: 10, fontWeight: 600, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--text3)", margin: "20px 0 12px" }}>Projected outcomes</div>
+        <div className="metrics" style={{ marginBottom: 14 }}>
+          <div className="mc"><div className="mc-label">Users reached</div><div className="mc-val">{tu.toLocaleString()}</div></div>
+          <div className="mc"><div className="mc-label">Expected redemptions</div><div className="mc-val">{redeemed.toLocaleString()}</div><div className="mc-sub">{(rr * 100).toFixed(0)}% of target</div></div>
+          <div className="mc"><div className="mc-label">Total reward cost</div><div className="mc-val" style={{ color: "var(--red)" }}>₹{totalRewardCost.toFixed(0)}</div></div>
+          <div className="mc"><div className="mc-label">Projected revenue</div><div className="mc-val">₹{totalRevenue.toFixed(0)}</div><div className="mc-sub">{redeemed}×{as} sess×{ak}kWh×₹{rpk}</div></div>
+        </div>
+        <div className="metrics">
+          <div className="mc"><div className="mc-label">Margin earned</div><div className="mc-val" style={{ color: "var(--green)" }}>₹{totalMargin.toFixed(0)}</div><div className="mc-sub">at {marginPct}%</div></div>
+          <div className="mc"><div className="mc-label">Acquisition cost</div><div className="mc-val">₹{totalAcqCost.toFixed(0)}</div><div className="mc-sub">₹{cpa}/user × {tu}</div></div>
+          <div className="mc"><div className="mc-label">Net P&L</div><div className="mc-val" style={{ color: netPL >= 0 ? "var(--green)" : "var(--red)" }}>{netPL >= 0 ? "+" : ""}₹{netPL.toFixed(0)}</div></div>
+          <div className="mc"><div className="mc-label">Cost per redeemed user</div><div className="mc-val">₹{costPerRedeemed.toFixed(0)}</div></div>
+        </div>
+      </>}
+      {!hasData && tu > 0 && <div style={{ padding: "14px", background: "var(--amber-bg)", borderRadius: "var(--r)", fontSize: 12, color: "var(--amber)", marginTop: 14 }}>Run simulations on your offers first to project costs at scale.</div>}
+    </div>}
+  </div>;
+}
+
+/* ── Schedule / Gantt Chart View ── */
+function ScheduleView({ allOffers, campaigns, onOpenOffer }) {
+  const [scale, setScale] = useState("month");
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  // Group offers by campaign
+  const grouped = {};
+  campaigns.forEach(c => { grouped[c._id] = { name: c.name, offers: [] }; });
+  allOffers.forEach(o => { if (grouped[o.campaignId]) grouped[o.campaignId].offers.push(o); });
+  // Compute date range
+  const allDates = allOffers.filter(o => o.startDate).map(o => {
+    const sd = new Date(o.startDate); const ed = getOfferEndDate(o); return [sd, ed];
+  }).flat();
+  if (allDates.length === 0) allDates.push(new Date(today.getTime() - 7 * 86400000), new Date(today.getTime() + 60 * 86400000));
+  const minDate = new Date(Math.min(...allDates.map(d => d.getTime())) - 7 * 86400000);
+  const spanDays = scale === "week" ? 21 : scale === "quarter" ? 90 : 45;
+  const maxDate = new Date(minDate.getTime() + spanDays * 86400000);
+  const totalMs = maxDate.getTime() - minDate.getTime();
+  const pct = (d) => Math.max(0, Math.min(100, ((d.getTime() - minDate.getTime()) / totalMs) * 100));
+  // Date labels
+  const dateLabels = [];
+  for (let d = new Date(minDate); d <= maxDate; d.setDate(d.getDate() + (scale === "week" ? 1 : scale === "quarter" ? 7 : 3))) {
+    dateLabels.push({ date: new Date(d), pct: pct(d) });
+  }
+  const todayPct = pct(today);
+  return <div>
+    <div className="page-hdr"><h1 style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 400 }}>Schedule</h1><div style={{ fontSize: 13, color: "var(--text3)", marginTop: 4 }}>All offers across campaigns on a timeline</div></div>
+    <div style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+      {["week", "month", "quarter"].map(s => <button key={s} className={"wt-mode " + (scale === s ? "active" : "")} onClick={() => setScale(s)}>{s.charAt(0).toUpperCase() + s.slice(1)}</button>)}
+    </div>
+    {allOffers.length === 0 ? <div className="card" style={{ textAlign: "center", padding: 40, color: "var(--text3)" }}>No offers created yet. Create campaigns and offers to see them here.</div> :
+      <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+        {/* Date header */}
+        <div style={{ position: "relative", height: 32, borderBottom: "1px solid var(--border)", background: "var(--bg2)", fontSize: 10, color: "var(--text3)" }}>
+          {dateLabels.map((dl, i) => <span key={i} style={{ position: "absolute", left: dl.pct + "%", transform: "translateX(-50%)", top: 10, whiteSpace: "nowrap", fontWeight: 500 }}>{dl.date.toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</span>)}
+          {todayPct > 0 && todayPct < 100 && <div style={{ position: "absolute", left: todayPct + "%", top: 0, bottom: 0, width: 2, background: "var(--accent)", zIndex: 2 }}><div style={{ position: "absolute", top: -2, left: -14, fontSize: 9, color: "var(--accent)", fontWeight: 600, background: "var(--bg2)", padding: "0 4px" }}>Today</div></div>}
+        </div>
+        {/* Gantt rows */}
+        {Object.entries(grouped).map(([cId, cData]) => {
+          if (cData.offers.length === 0) return null;
+          return <div key={cId}>
+            <div style={{ padding: "10px 16px", fontSize: 11, fontWeight: 600, color: "var(--text3)", background: "var(--bg2)", borderBottom: "1px solid var(--border)", letterSpacing: ".04em", textTransform: "uppercase" }}>{cData.name}</div>
+            {cData.offers.map(o => {
+              const st = getOfferStatus(o); const sd = o.startDate ? new Date(o.startDate) : today; const ed = getOfferEndDate(o);
+              const left = pct(sd); const right = pct(ed); const width = Math.max(right - left, 1);
+              const tp = o.wpre ? "Pre-load" : o.reward;
+              return <div key={o._id || o.id} style={{ position: "relative", height: 44, borderBottom: "1px solid var(--border)", cursor: "pointer" }} onClick={() => onOpenOffer && onOpenOffer(o)} title={o.name + " · " + st + " · " + (o.segments || []).join(", ")}>
+                <div style={{ position: "absolute", left: 12, top: 13, fontSize: 11, color: "var(--text3)", width: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontWeight: 500 }}>{o.name}</div>
+                <div style={{ position: "absolute", left: Math.max(left, 15) + "%", top: 8, width: width + "%", minWidth: 30, height: 28, borderRadius: 6, background: STATUS_BG[st], border: "1px solid " + STATUS_COLORS[st] + "40", display: "flex", alignItems: "center", paddingLeft: 8, gap: 6, fontSize: 10, color: STATUS_COLORS[st], fontWeight: 600, overflow: "hidden", whiteSpace: "nowrap", ...(st === "paused" ? { backgroundImage: "repeating-linear-gradient(45deg, transparent, transparent 3px, " + STATUS_COLORS[st] + "15 3px, " + STATUS_COLORS[st] + "15 6px)" } : {}) }}>
+                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: DOT_COLORS[tp] || "var(--text3)", flexShrink: 0 }} />{tp} · {(o.segments || []).join(", ") || "—"}
+                </div>
+              </div>;
+            })}
+          </div>;
+        })}
+      </div>
+    }
+  </div>;
+}
+
 function CampaignsList({ campaigns, onSelect, onNew, onArchive }) {
   const [delId, setDelId] = useState(null);
   const delName = delId ? (campaigns.find(c => c._id === delId)?.name || "") : "";
@@ -351,7 +469,7 @@ function RewardStep({offer,update}){const ip=offer.wpre,vr=REWARDS_FOR[offer.act
 
 function BoundaryStep({offer,update}){const fs=[];let note="";if(offer.wpre){fs.push({k:"wm",l:"Minimum wallet balance (₹)",v:offer.wm});const parts=["Pre-loaded ₹"+(offer.w||"—")];parts.push(offer.dist==="spread"?"Spread across sessions":"Single use");if(offer.sx)parts.push("Max "+offer.sx+" sessions");if(offer.wpun)parts.push("Min "+offer.wpun+" kWh/session");if(offer.wpc)parts.push("Credit cap ₹"+offer.wpc);if(offer.wsx)parts.push("₹"+(offer.wsxType==="pct"?(parseFloat(offer.wsx)/100*parseFloat(offer.w||0)).toFixed(0):offer.wsx)+"/session");note=parts.join(" · ")}else if(offer.activity==="Charging session"){fs.push({k:"un",l:"Minimum charge required (kWh)",v:offer.un},{k:"ux",l:"Maximum charge allowed (kWh)",v:offer.ux},{k:"nx",l:"Minimum transaction value (₹)",v:offer.nx});if(offer.reward==="Cashback")fs.push({k:"cy",l:"Maximum cashback per session (₹)",v:offer.cy});if(offer.reward==="Discount")fs.push({k:"dy",l:"Maximum discount per session (₹)",v:offer.dy});fs.push({k:"sn",l:"Sessions before reward starts",v:offer.sn},{k:"sx",l:"Maximum rewarded sessions",v:offer.sx})}else{fs.push({k:"wm",l:"Minimum top-up amount (₹)",v:offer.wm});if(offer.reward==="Cashback")fs.push({k:"cy",l:"Maximum cashback per top-up (₹)",v:offer.cy})}return<div className="card"><div className="card-title">What are the limits?</div><div style={{fontSize:12,color:"var(--text3)",marginBottom:16}}>Set guardrails to control eligibility and cap your costs</div><div className="bc-grid">{fs.map(f=><div key={f.k} className="field"><div className="field-label">{f.l}</div><input type="number" value={f.v||""} placeholder="No limit" onChange={e=>update({[f.k]:e.target.value})}/></div>)}</div>{note&&<div className="bc-note">{note}</div>}</div>}
 
-function DurationStep({offer,update}){const sc=offer.reward==="Cashback"&&!offer.wpre;return<div className="card"><div className="card-title">How long does it run?</div><div style={{fontSize:12,color:"var(--text3)",marginBottom:16}}>Set the campaign window and when earned rewards expire</div><div className="grid2" style={{marginBottom:sc?14:0}}><div className="field"><div className="field-label">Campaign duration (days)</div><input type="number" value={offer.t} onChange={e=>update({t:e.target.value})}/></div><div className="field"><div className="field-label">Hard expiry date</div><input type="date" value={offer.te} onChange={e=>update({te:e.target.value})}/></div></div>{sc&&<div className="field" style={{maxWidth:220}}><div className="field-label">Cashback expires after (days)</div><input type="number" value={offer.ce} onChange={e=>update({ce:e.target.value})}/></div>}</div>}
+function DurationStep({offer,update}){const sc=offer.reward==="Cashback"&&!offer.wpre;return<div className="card"><div className="card-title">How long does it run?</div><div style={{fontSize:12,color:"var(--text3)",marginBottom:16}}>Set the campaign window and when earned rewards expire</div><div className="grid2" style={{marginBottom:14}}><div className="field"><div className="field-label">Start date</div><input type="date" value={offer.startDate||""} onChange={e=>update({startDate:e.target.value})}/></div><div className="field"><div className="field-label">Campaign duration (days)</div><input type="number" value={offer.t} onChange={e=>update({t:e.target.value})}/></div></div><div className="grid2" style={{marginBottom:sc?14:0}}><div className="field"><div className="field-label">Hard expiry date</div><input type="date" value={offer.te} onChange={e=>update({te:e.target.value})}/></div>{sc&&<div className="field"><div className="field-label">Cashback expires after (days)</div><input type="number" value={offer.ce} onChange={e=>update({ce:e.target.value})}/></div>}</div></div>}
 
 function SummaryStep({offer,campaignName}){const[viewMode,setViewMode]=useState("business");const[copied,setCopied]=useState("");
   const segs=offer.segments.length?offer.segments.join(", "):"—";let bg,bl;if(offer.wpre){bg="bg-preload";bl="Pre-load"}else{[bg,bl]=BADGE_MAP[offer.reward]||["bg-coupon","Coupon"]}const isW=offer.activity==="Wallet top-up";
@@ -365,11 +483,11 @@ function SummaryStep({offer,campaignName}){const[viewMode,setViewMode]=useState(
   return<div className="sum-card"><div className="sum-hdr"><span className="sum-name">{offer.name}</span><div style={{display:"flex",gap:8,alignItems:"center"}}><span className={"badge "+bg}>{bl}</span></div></div><div className="sum-body">
     <div style={{display:"flex",gap:6,marginBottom:16}}><button className={"wt-mode "+(viewMode==="business"?"active":"")} onClick={()=>setViewMode("business")}>Business view</button><button className={"wt-mode "+(viewMode==="tech"?"active":"")} onClick={()=>setViewMode("tech")}>Technical spec</button></div>
     {viewMode==="business"&&<div className="sum-plain" dangerouslySetInnerHTML={{__html:pl}}/>}
-    {viewMode==="tech"&&<><table className="vtable"><thead><tr><th>Variable</th><th>Parameter</th><th>Value</th></tr></thead><tbody>{rows.map((r,i)=><tr key={i}><td style={{fontFamily:"'DM Mono'",color:"var(--accent)",fontSize:11}}>{r.v}</td><td style={{color:"var(--text3)"}}>{r.p}</td><td style={{fontWeight:600}}>{r.val}</td></tr>)}</tbody></table></>}
+    {viewMode==="tech"&&<><table className="vtable"><thead><tr><th>Variable</th><th>Parameter</th><th>Value</th></tr></thead><tbody>{rows.map((r,i)=><tr key={i}><td style={{fontFamily:"var(--font-mono)",color:"var(--accent)",fontSize:11}}>{r.v}</td><td style={{color:"var(--text3)"}}>{r.p}</td><td style={{fontWeight:600}}>{r.val}</td></tr>)}</tbody></table></>}
     <div style={{display:"flex",gap:8,marginTop:16,flexWrap:"wrap"}}><button className="btn" onClick={copyJson}>{copied==="json"?"✓ Copied!":"Copy as JSON"}</button><button className="btn" onClick={copyText}>{copied==="text"?"✓ Copied!":"Copy as text"}</button><button className="btn btn-primary" onClick={()=>{
       const isW=offer.activity==="Wallet top-up",isP=!!offer.wpre;const sim=offer.simResult;const sRoi=offer.simRoi;const sTxns=offer.simTxns;
       const w=window.open("","_blank");if(!w)return;
-      let html='<html><head><title>'+offer.name+' — Offer Report</title><style>body{font-family:Open Sans,sans-serif;font-size:12px;color:#111;max-width:800px;margin:0 auto;padding:30px}h1{font-size:22px;margin:0 0 4px}h2{font-size:14px;margin:24px 0 10px;padding-bottom:6px;border-bottom:1px solid #ddd;color:#eb212e}h3{font-size:12px;margin:16px 0 8px;color:#555}table{width:100%;border-collapse:collapse;margin:8px 0 16px}th,td{padding:6px 8px;border:1px solid #ddd;text-align:left;font-size:11px}th{background:#f5f5f5;font-weight:600}td:first-child{font-weight:500}.badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:10px;font-weight:600}.meta{color:#888;font-size:11px;margin-bottom:20px}.summary-box{background:#f8f8f8;border-left:3px solid #eb212e;padding:14px 16px;margin:12px 0;line-height:1.8;font-size:12px}.mc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:10px 0}.mc-card{border:1px solid #ddd;border-radius:8px;padding:12px}.mc-label{font-size:9px;text-transform:uppercase;letter-spacing:.06em;color:#888;margin-bottom:4px}.mc-val{font-size:20px;font-weight:300}.risk{padding:8px 12px;margin:4px 0;border-radius:6px;font-size:11px}.risk-ok{background:#e8f5e9;color:#2e7d32}.risk-warn{background:#fff8e1;color:#f57f17}.risk-risk{background:#fce4ec;color:#c62828}@media print{body{padding:10px}}</style></head><body>';
+      let html='<html><head><title>'+offer.name+' — Offer Report</title><style>@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap");body{font-family:Inter,sans-serif;font-size:12px;color:#1e1a16;max-width:800px;margin:0 auto;padding:30px}h1{font-family:Instrument Serif,serif;font-size:26px;font-weight:400;margin:0 0 4px}h2{font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;margin:28px 0 12px;padding-bottom:8px;border-bottom:1px solid #e5e2dd;color:#eb212e}h3{font-size:12px;margin:18px 0 8px;color:#5c554d}table{width:100%;border-collapse:collapse;margin:8px 0 16px}th,td{padding:8px 10px;border:1px solid #e5e2dd;text-align:left;font-size:11px}th{background:#f5f2ed;font-weight:600;font-size:10px;letter-spacing:.04em;text-transform:uppercase;color:#8a847c}td:first-child{font-weight:500}.badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:10px;font-weight:600}.meta{color:#8a847c;font-size:12px;margin-bottom:24px}.summary-box{background:#f5f2ed;border-left:3px solid #eb212e;padding:16px 18px;margin:14px 0;line-height:1.8;font-size:13px;border-radius:0 10px 10px 0}.mc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:12px 0}.mc-card{border:1px solid #e5e2dd;border-radius:14px;padding:16px}.mc-label{font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:#8a847c;margin-bottom:6px}.mc-val{font-family:Instrument Serif,serif;font-size:24px;font-weight:400}.risk{padding:10px 14px;margin:6px 0;border-radius:8px;font-size:12px;line-height:1.5}.risk-ok{background:#e8f5e9;color:#1a7a3a}.risk-warn{background:#fff8e1;color:#b07714}.risk-risk{background:#fce4ec;color:#c62828}@media print{body{padding:10px}}</style></head><body>';
       html+='<h1>'+offer.name+'</h1><div class="meta">'+(campaignName||"")+" \u2022 Generated "+new Date().toLocaleDateString()+'</div>';
       html+='<h2>Audience</h2><p><strong>Segments:</strong> '+segs+'</p>';if(offer.rc)html+='<p><strong>Custom cohort:</strong> '+offer.rcCount+' users ('+offer.rcLogic+')</p>';
       html+='<h2>Activity & Triggers</h2><p><strong>Activity:</strong> '+offer.activity+'</p>';if(offer.ctMode==="first")html+='<p><strong>Trigger:</strong> First charging session only</p>';if(offer.wtMode==="first")html+='<p><strong>Trigger:</strong> First wallet top-up only</p>';if(offer.wpre)html+='<p><strong>Pre-load:</strong> \u20b9'+offer.w+' ('+offer.dist+') from '+offer.wa+'</p>';
@@ -468,7 +586,8 @@ export default function App(){
       </div>
       <div className="sb-section">Navigate</div>
       <button className={"sb-item "+(view==="campaigns"&&!activeCampaign?"active":"")} onClick={()=>{setActiveCampaign(null);setView("campaigns")}}>⊞ <span>Home</span></button>
-      <button className={"sb-item "+(view==="campaigns"&&!activeCampaign?"":"")+(view==="offers"||view==="editor"?"active":"")} onClick={()=>{if(activeCampaign)setView("offers");else{setView("campaigns")}}}>☰ <span>Campaigns</span></button>
+      <button className={"sb-item "+((view==="offers"||view==="editor")?"active":"")} onClick={()=>{if(activeCampaign)setView("offers");else setView("campaigns")}}>☰ <span>Campaigns</span></button>
+      <button className={"sb-item "+(view==="schedule"?"active":"")} onClick={()=>setView("schedule")}>📅 <span>Schedule</span></button>
       <div className="sb-section">Tools</div>
       <button className={"sb-item "+(aiOpen?"active":"")} onClick={()=>setAiOpen(!aiOpen)}>✦ <span>AI Assistant</span>{!getApiKey()&&<span style={{marginLeft:"auto",width:6,height:6,borderRadius:"50%",background:"var(--accent)"}}/>}</button>
       <button className="sb-item" onClick={()=>setKeyModal(true)}>⚙ <span>Settings</span></button>
@@ -487,7 +606,8 @@ export default function App(){
           <span style={{cursor:"pointer"}} onClick={()=>{setActiveCampaign(null);setView("campaigns")}}>OfferOS</span>
           {activeCampaign&&<><span className="sep">/</span><span style={{cursor:"pointer"}} onClick={()=>setView("offers")}>{activeCampaign.name}</span></>}
           {offer&&view==="editor"&&<><span className="sep">/</span><span className="current">{offer.name}</span></>}
-          {!activeCampaign&&<><span className="sep">/</span><span className="current">Campaigns</span></>}
+          {view==="schedule"&&<><span className="sep">/</span><span className="current">Schedule</span></>}
+          {!activeCampaign&&view!=="schedule"&&<><span className="sep">/</span><span className="current">Campaigns</span></>}
         </div>
         <div className="topbar-right">
           {saveStatus&&<div className={"save-indicator "+saveStatus}>{saveStatus==="saving"?"Saving...":saveStatus==="saved"?"✓ Saved":saveStatus==="error"?"Save failed":""}</div>}
@@ -500,12 +620,17 @@ export default function App(){
       {/* CAMPAIGNS LIST */}
       {view==="campaigns"&&<><HomeDashboard campaigns={campaigns} allOffers={allOffers} /><CampaignsList campaigns={campaigns} onSelect={c=>{setActiveCampaign(c);}} onNew={newCampaign} onArchive={archiveCampaign}/></>}
 
+      {/* SCHEDULE VIEW */}
+      {view==="schedule"&&<ScheduleView allOffers={allOffers} campaigns={campaigns} onOpenOffer={(o)=>{const camp=campaigns.find(c=>c._id===o.campaignId);if(camp){setActiveCampaign(camp);api("/offers?campaignId="+camp._id).then(offs=>{setOffers(offs);setCid(o._id||o.id);setStep(0);setTxns(o.simTxns||defaultTxns(o.activity));setLastSim(o.simResult||null);setView("editor")}).catch(()=>{})}}}/>
+
       {/* OFFERS VIEW */}
       {view==="offers"&&activeCampaign&&<><div className="page-hdr">
         <div className="page-hdr-sub" onClick={()=>{setActiveCampaign(null);setView("campaigns")}}>← All Campaigns</div>
-        <input style={{fontFamily:"'Instrument Serif',serif",fontSize:28,fontWeight:400,border:"none",background:"none",width:"100%",padding:0,color:"var(--text)"}} value={activeCampaign.name} onChange={e=>{setActiveCampaign(p=>({...p,name:e.target.value}));updateCampaignName(e.target.value)}} placeholder="Campaign name"/>
+        <input style={{fontFamily:"var(--font-display)",fontSize:28,fontWeight:400,border:"none",background:"none",width:"100%",padding:0,color:"var(--text)"}} value={activeCampaign.name} onChange={e=>{setActiveCampaign(p=>({...p,name:e.target.value}));updateCampaignName(e.target.value)}} placeholder="Campaign name"/>
       </div>
       <div style={{display:"flex",gap:14,marginBottom:20,alignItems:"center"}}><div className="field" style={{maxWidth:180}}><div className="field-label">Charging margin %</div><input type="number" value={marginPct} min="1" max="100" onChange={e=>updateMargin(parseInt(e.target.value)||30)} style={{padding:"7px 10px"}}/></div><div style={{fontSize:11,color:"var(--text3)",lineHeight:1.5,maxWidth:400}}>Margin on charging net revenue (pre-GST). Wallet top-ups don't generate margin.</div></div>
+      {/* Business Impact Projector */}
+      <BusinessProjector offers={offers} marginPct={marginPct} projInputs={activeCampaign.projectionInputs} onSave={(inp)=>{setActiveCampaign(p=>({...p,projectionInputs:inp}));api("/campaigns?id="+activeCampaign._id,{method:"PUT",body:{projectionInputs:inp}}).catch(()=>{})}} />
       {/* Campaign Dashboard */}
       {offers.length>0&&<div style={{marginBottom:24}}>
         <div style={{fontSize:10,fontWeight:600,letterSpacing:".08em",textTransform:"uppercase",color:"var(--text3)",marginBottom:12}}>Campaign overview</div>
@@ -518,14 +643,14 @@ export default function App(){
         {/* Offer comparison table */}
         {offers.length>1&&<div className="card" style={{padding:0,overflow:"hidden",marginBottom:16}}><div style={{padding:"14px 20px 0",fontSize:10,fontWeight:600,letterSpacing:".08em",textTransform:"uppercase",color:"var(--text3)"}}>Offer comparison</div><div className="scroll-x" style={{padding:"8px 0"}}><table className="result-tbl" style={{minWidth:600}}><thead><tr><th>Offer</th><th>Segment</th><th>Type</th><th>Activity</th><th>Key rate</th><th>Cap</th><th>Duration</th><th>Reward cost</th><th>Net impact</th></tr></thead><tbody>{offers.map(o=>{const tp=o.wpre?"Pre-load":o.reward;const rate=o.wpre?"₹"+(o.w||"—"):o.reward==="Cashback"?(o.tiers?.[0]?.pct||"—")+"%":o.reward==="Discount"?(o.dpct||"—")+"%":o.reward==="ChargeXP"?(o.xpwpct||"—")+" XP/₹":o.p||"—";const cap=o.cy?"₹"+o.cy:o.dy?"₹"+o.dy:"—";const sr=o.simResult;const sRoi=o.simRoi;return<tr key={o._id||o.id} style={{cursor:"pointer"}} onClick={()=>openOffer(o._id||o.id)}><td style={{fontWeight:600}}>{o.name}</td><td>{o.segments?.join(", ")||"—"}</td><td><span style={{fontSize:10,padding:"2px 8px",borderRadius:10,background:"var(--bg3)"}}>{tp}</span></td><td>{o.activity}</td><td>{rate}</td><td>{cap}</td><td>{o.t}d</td><td>{sr?"₹"+sr.totalReward.toFixed(0):"—"}</td><td style={{color:sRoi?(sRoi.netImpact>=0?"var(--green)":"var(--red)"):"var(--text3)"}}>{sRoi?(sRoi.netImpact>=0?"+":"")+"₹"+sRoi.netImpact.toFixed(0):"—"}</td></tr>})}</tbody></table></div></div>}
       </div>}
-      <div className="offers-grid">{offers.map(o=>{const tp=o.wpre?"Pre-load":o.reward,oid=o._id||o.id,hc=conflicts[oid];return<div key={oid} className={"offer-card "+(oid===cid?"active":"")} onClick={()=>openOffer(oid)}><div className="offer-card-actions" onClick={e=>e.stopPropagation()}><button onClick={()=>dupOffer(oid)} title="Duplicate">⧉</button><button className="del" onClick={()=>setDelTarget(oid)} title="Delete">×</button></div><div className="offer-card-type"><div className="offer-card-dot" style={{background:DOT_COLORS[tp]}}/><div className="offer-card-label">{tp}</div></div><div className="offer-card-name">{o.name}</div><div className="offer-card-segs">{o.segments?.length?o.segments.join(", "):"No segment"}</div>{hc&&<div style={{fontSize:10,color:"var(--red)",marginTop:6}}>⚠ {hc[0]}</div>}</div>})}<div className="add-card" onClick={()=>setShowTemplates(true)}>+ New Offer</div></div>
+      <div className="offers-grid">{offers.map(o=>{const tp=o.wpre?"Pre-load":o.reward,oid=o._id||o.id,hc=conflicts[oid],st=getOfferStatus(o);return<div key={oid} className={"offer-card "+(oid===cid?"active":"")} onClick={()=>openOffer(oid)}><div className="offer-card-actions" onClick={e=>e.stopPropagation()}><button onClick={()=>dupOffer(oid)} title="Duplicate">⧉</button><button className="del" onClick={()=>setDelTarget(oid)} title="Delete">×</button></div><div className="offer-card-type"><div className="offer-card-dot" style={{background:DOT_COLORS[tp]}}/><div className="offer-card-label">{tp}</div><span style={{marginLeft:"auto",fontSize:10,padding:"2px 8px",borderRadius:12,background:STATUS_BG[st],color:STATUS_COLORS[st],fontWeight:600}}>{st}</span></div><div className="offer-card-name">{o.name}</div><div className="offer-card-segs">{o.segments?.length?o.segments.join(", "):"No segment"}{o.startDate?" · Starts "+o.startDate:""}</div>{hc&&<div style={{fontSize:10,color:"var(--red)",marginTop:6}}>⚠ {hc[0]}</div>}</div>})}<div className="add-card" onClick={()=>setShowTemplates(true)}>+ New Offer</div></div>
       {showTemplates&&<div className="modal-overlay" onClick={()=>setShowTemplates(false)}><div className="modal" style={{maxWidth:520}} onClick={e=>e.stopPropagation()}><div className="modal-title">Choose a starting point</div><div className="modal-msg">Pick a template to pre-fill your offer, or start from scratch.</div>{OFFER_TEMPLATES.map((t,i)=><div key={i} style={{padding:"14px 16px",border:"1px solid var(--border)",borderRadius:"var(--r)",marginBottom:8,cursor:"pointer",transition:"all .15s"}} onClick={()=>addOffer(t)} onMouseOver={e=>e.currentTarget.style.borderColor="var(--accent)"} onMouseOut={e=>e.currentTarget.style.borderColor="var(--border)"}><div style={{fontSize:13,fontWeight:600,marginBottom:2}}>{t.name}</div><div style={{fontSize:11,color:"var(--text3)"}}>{t.desc}</div></div>)}</div></div>}
       </>}
 
       {/* EDITOR VIEW */}
       {view==="editor"&&offer&&<><div className="page-hdr">
         <div className="page-hdr-sub" onClick={()=>setView("offers")}>← {activeCampaign?.name||"Offers"}</div>
-        <input style={{fontFamily:"'Instrument Serif',serif",fontSize:28,fontWeight:400,border:"none",background:"none",width:"100%",padding:0,color:"var(--text)"}} value={offer.name} onChange={e=>upd({name:e.target.value})} placeholder="Offer name"/>
+        <input style={{fontFamily:"var(--font-display)",fontSize:28,fontWeight:400,border:"none",background:"none",width:"100%",padding:0,color:"var(--text)"}} value={offer.name} onChange={e=>upd({name:e.target.value})} placeholder="Offer name"/>
       </div>
         <div className="steps">{STEPS.map((s,i)=>{let cls="";if(i===step)cls="active";else if(i<step)cls=validateStep(offer,i)?"done":"incomplete";return<div key={i} className={"step "+cls} onClick={()=>setStep(i)}>{s.label}</div>})}</div>
         <div style={{marginBottom:20,padding:"12px 16px",background:"var(--bg)",border:"1px solid var(--border)",borderRadius:"var(--r2)"}}><div style={{fontSize:15,fontWeight:600,marginBottom:2}}>{STEPS[step].title}</div><div style={{fontSize:12,color:"var(--text3)"}}>{STEPS[step].desc}</div></div>
