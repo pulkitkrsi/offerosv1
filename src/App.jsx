@@ -621,7 +621,7 @@ export default function App(){
       {view==="campaigns"&&<><HomeDashboard campaigns={campaigns} allOffers={allOffers} /><CampaignsList campaigns={campaigns} onSelect={c=>{setActiveCampaign(c);}} onNew={newCampaign} onArchive={archiveCampaign}/></>}
 
       {/* SCHEDULE VIEW */}
-      {view==="schedule"&&<ScheduleView allOffers={allOffers} campaigns={campaigns} onOpenOffer={(o)=>{const camp=campaigns.find(c=>c._id===o.campaignId);if(camp){setActiveCampaign(camp);api("/offers?campaignId="+camp._id).then(offs=>{setOffers(offs);setCid(o._id||o.id);setStep(0);setTxns(o.simTxns||defaultTxns(o.activity));setLastSim(o.simResult||null);setView("editor")}).catch(()=>{})}}}/>
+      {view==="schedule"&&<ScheduleView allOffers={allOffers} campaigns={campaigns} onOpenOffer={(o)=>{const camp=campaigns.find(c=>c._id===o.campaignId);if(camp){setActiveCampaign(camp);api("/offers?campaignId="+camp._id).then(offs=>{setOffers(offs);setCid(o._id||o.id);setStep(0);setTxns(o.simTxns||defaultTxns(o.activity));setLastSim(o.simResult||null);setView("editor")}).catch(()=>{})}}}/>}
 
       {/* OFFERS VIEW */}
       {view==="offers"&&activeCampaign&&<><div className="page-hdr">
