@@ -17,7 +17,7 @@ const REWARDS_FOR = { "Charging session": ["Cashback", "Discount", "Coupon"], "W
 
 let _oc = 0;
 const uid = () => "o" + (++_oc) + "_" + Date.now();
-const defaultOffer = (n) => ({ id: uid(), name: "Offer " + n, segments: [], activity: "Charging session", wpre: false, w: "", wa: "Campaign start date", dist: "spread", wsx: "", wsxType: "fixed", wpun: "", wpc: "", reward: "Cashback", tiers: [{ s: "1", pct: "7" }, { s: "2", pct: "10" }, { s: "3", pct: "12" }], dpct: "", xpwpct: "", p: "", un: "", ux: "", nx: "", cy: "", dy: "", wm: "", sn: "", sx: "", t: "30", te: "", ce: "30", ctMode: "off", wtMode: "none", wtSlabs: [{ min: "100", max: "499", pct: "5" }, { min: "500", max: "999", pct: "8" }, { min: "1000", max: "", pct: "12" }], rc: null, rcFileName: "", rcCount: 0, rcLogic: "intersection", simTxns: null, simResult: null, simRoi: null, startDate: new Date().toISOString().split("T")[0], paused: false });
+const defaultOffer = (n) => ({ id: uid(), name: "Offer " + n, segments: [], activity: "Charging session", wpre: false, w: "", wa: "Campaign start date", dist: "spread", wsx: "", wsxType: "fixed", wpun: "", wpc: "", reward: "Cashback", tiers: [{ s: "1", pct: "7" }, { s: "2", pct: "10" }, { s: "3", pct: "12" }], dpct: "", xpwpct: "", p: "", un: "", ux: "", nx: "", cy: "", dy: "", wm: "", sn: "", sx: "", t: "30", te: "", ce: "30", ctMode: "off", wtMode: "none", wtSlabs: [{ min: "100", max: "499", pct: "5" }, { min: "500", max: "999", pct: "8" }, { min: "1000", max: "", pct: "12" }], rc: null, rcFileName: "", rcCount: 0, rcLogic: "intersection", simTxns: null, simResult: null, simRoi: null, startDate: new Date().toISOString().split("T")[0], paused: false, scaleInputs: null });
 function getOfferStatus(o) { if (o.paused) return "paused"; const today = new Date(); const sd = o.startDate ? new Date(o.startDate) : null; if (!sd) return "draft"; const days = parseInt(o.t) || 30; const ed = o.te ? new Date(o.te) : new Date(sd.getTime() + days * 86400000); if (today < sd) return "scheduled"; if (today > ed) return "expired"; return "active"; }
 function getOfferEndDate(o) { const sd = o.startDate ? new Date(o.startDate) : new Date(); const days = parseInt(o.t) || 30; return o.te ? new Date(o.te) : new Date(sd.getTime() + days * 86400000); }
 const STATUS_COLORS = { active: "var(--green)", scheduled: "var(--blue)", paused: "var(--amber)", expired: "var(--text3)", draft: "var(--text3)" };
@@ -602,7 +602,115 @@ function SimulateStep({offer,txns,setTxns,marginPct,onSaveSim}){const[res,setRes
     </div>}
     {roi&&roi.risks.length>0&&<div className="dash-section"><div className="dash-title"><span className="dash-icon di-r">{"\u2192"}</span> What next?</div>{roi.risks.map((r,i)=><div key={i} className={"risk-item "+r.type}>{r.msg}</div>)}</div>}
     <div className="card" style={{padding:0,overflow:"hidden",marginTop:8}}><div style={{padding:"14px 20px 0",fontSize:10,fontWeight:600,letterSpacing:".08em",textTransform:"uppercase",color:"var(--text3)"}}>Transaction Detail</div><div className="scroll-x" style={{padding:"8px 0"}}><table className="result-tbl" style={{minWidth:600}}><thead><tr><th>#</th><th>Date</th>{(isW||isP)&&<th>{isP?"Sess \u20b9":"Top-up \u20b9"}</th>}{!isW&&!isP&&<><th>kWh</th><th>Net \u20b9</th><th>w/ GST</th></>}<th>{isW&&!isP?"#":"Sess"}</th><th>Rate</th><th>{res.rewardType==="ChargeXP"?"XP":"Reward"}</th><th>Status</th></tr></thead><tbody>{res.rows.map((r,i)=><tr key={i}><td>{r.idx}</td><td>{r.date}</td>{(isW||isP)&&<td>{"\u20b9"}{(r.amount||0).toFixed(0)}</td>}{!isW&&!isP&&<><td>{r.units}</td><td>{"\u20b9"}{r.net.toFixed(0)}</td><td>{"\u20b9"}{r.total.toFixed(0)}</td></>}<td>{r.sessStr}</td><td>{r.rateStr}</td><td className="rval">{r.rewardUnit==="XP"?(r.reward||0).toFixed(0)+" XP":"\u20b9"+(r.reward||0).toFixed(0)}</td><td><StatusBadge s={r.status}/></td></tr>)}</tbody></table></div></div>
+    <ScaleProjector offer={offer} simResult={res} simRoi={roi} marginPct={marginPct} onSave={(si)=>onSaveSim({scaleInputs:si})}/>
   </>}</>}
+/* ── Scale to User Base ── */
+function ScaleProjector({offer,simResult,simRoi,marginPct,onSave}){
+  const defaults={userBase:"",redemptionRate:"15",avgSessionsPerMonth:"3",avgKwhPerSession:"12",avgRatePerKwh:"22",avgTopupAmount:"300",avgTopupsPerMonth:"2",cpaPerUser:"5",operationalCost:"0"};
+  const[inp,setInp]=useState(offer.scaleInputs||defaults);
+  const[open,setOpen]=useState(!!offer.scaleInputs?.userBase);
+  const save=(v)=>{const n={...inp,...v};setInp(n);onSave(n)};
+  if(!simResult)return null;
+  const isW=offer.activity==="Wallet top-up",isP=!!offer.wpre;
+  const ub=parseFloat(inp.userBase)||0;const rr=(parseFloat(inp.redemptionRate)||0)/100;
+  const aSess=parseFloat(inp.avgSessionsPerMonth)||3;const aKwh=parseFloat(inp.avgKwhPerSession)||12;
+  const aRate=parseFloat(inp.avgRatePerKwh)||22;const aTopup=parseFloat(inp.avgTopupAmount)||300;
+  const aTpm=parseFloat(inp.avgTopupsPerMonth)||2;const cpau=parseFloat(inp.cpaPerUser)||0;
+  const opCost=parseFloat(inp.operationalCost)||0;
+  const days=parseInt(offer.t)||30;const months=days/30;
+  const redeemed=Math.round(ub*rr);
+  // Per-user economics from simulation
+  const simQual=simResult.qualTxns||1;const simReward=simResult.totalReward||0;
+  const rewardPerQualTxn=simQual>0?simReward/simQual:0;
+  // Events per user during campaign
+  const eventsPerUser=isW?Math.round(aTpm*months):Math.round(aSess*months);
+  const cappedEvents=offer.sx?Math.min(eventsPerUser,parseInt(offer.sx)):eventsPerUser;
+  // Per-user projections
+  const rewardPerUser=isP?(parseFloat(offer.w)||0):rewardPerQualTxn*cappedEvents;
+  const revenuePerUser=isW?0:cappedEvents*aKwh*aRate;
+  const marginPerUser=revenuePerUser*(marginPct/100);
+  const netPerUser=marginPerUser-rewardPerUser;
+  // Scale projections
+  const totalReward=redeemed*rewardPerUser;
+  const totalRevenue=redeemed*revenuePerUser;
+  const totalMargin=redeemed*marginPerUser;
+  const totalAcqCost=ub*cpau;
+  const netPL=totalMargin-totalReward-totalAcqCost-opCost;
+  // Sensitivity
+  const sensRates=[5,10,15,20,25,30];
+  const sensData=sensRates.map(r=>{const rd=Math.round(ub*(r/100));const tr=rd*rewardPerUser;const tm=rd*revenuePerUser*(marginPct/100);const net=tm-tr-ub*cpau-opCost;return{rate:r,redeemed:rd,reward:tr,margin:tm,net}});
+  // Breakeven
+  const beRate=rewardPerUser>0&&marginPerUser>0?((rewardPerUser/(marginPerUser-cpau||1))*100):0;
+  return<div style={{marginTop:28}}>
+    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer",padding:"12px 0"}} onClick={()=>setOpen(!open)}>
+      <div style={{fontSize:10,fontWeight:600,letterSpacing:".08em",textTransform:"uppercase",color:"var(--accent)"}}>Scale to User Base</div>
+      <span style={{color:"var(--text3)",fontSize:14}}>{open?"\u25be":"\u25b8"}</span>
+    </div>
+    {open&&<div className="card">
+      <div className="card-title" style={{fontSize:18}}>User Base Impact</div>
+      <div style={{fontSize:12,color:"var(--text3)",marginBottom:20}}>Project what happens when this offer is deployed to your full user base. Uses your simulation results as the per-user baseline.</div>
+      <div style={{fontSize:10,fontWeight:600,letterSpacing:".08em",textTransform:"uppercase",color:"var(--text3)",marginBottom:10}}>User base</div>
+      <div className="grid2" style={{marginBottom:18}}>
+        <div className="field"><div className="field-label">Total users to target</div><input type="number" value={inp.userBase} placeholder="50000" onChange={e=>save({userBase:e.target.value})}/></div>
+        <div className="field"><div className="field-label">Expected redemption rate (%)</div><input type="number" value={inp.redemptionRate} placeholder="15" onChange={e=>save({redemptionRate:e.target.value})}/></div>
+      </div>
+      <div style={{fontSize:10,fontWeight:600,letterSpacing:".08em",textTransform:"uppercase",color:"var(--text3)",marginBottom:10}}>User behaviour profile</div>
+      {!isW&&<div className="grid2" style={{marginBottom:14}}>
+        <div className="field"><div className="field-label">Avg charging sessions per user/month</div><input type="number" value={inp.avgSessionsPerMonth} placeholder="3" onChange={e=>save({avgSessionsPerMonth:e.target.value})}/></div>
+        <div className="field"><div className="field-label">Avg kWh consumed per session</div><input type="number" value={inp.avgKwhPerSession} placeholder="12" onChange={e=>save({avgKwhPerSession:e.target.value})}/></div>
+      </div>}
+      {!isW&&<div className="grid2" style={{marginBottom:14}}>
+        <div className="field"><div className="field-label">Avg rate per kWh (\u20b9)</div><input type="number" value={inp.avgRatePerKwh} placeholder="22" onChange={e=>save({avgRatePerKwh:e.target.value})}/></div>
+        <div className="field"><div className="field-label">Campaign duration</div><div style={{padding:"9px 12px",background:"var(--bg2)",borderRadius:8,fontSize:13,color:"var(--text2)"}}>{days} days ({months.toFixed(1)} months)</div></div>
+      </div>}
+      {isW&&!isP&&<div className="grid2" style={{marginBottom:14}}>
+        <div className="field"><div className="field-label">Avg wallet top-up amount (\u20b9)</div><input type="number" value={inp.avgTopupAmount} placeholder="300" onChange={e=>save({avgTopupAmount:e.target.value})}/></div>
+        <div className="field"><div className="field-label">Avg top-ups per user/month</div><input type="number" value={inp.avgTopupsPerMonth} placeholder="2" onChange={e=>save({avgTopupsPerMonth:e.target.value})}/></div>
+      </div>}
+      <div style={{fontSize:10,fontWeight:600,letterSpacing:".08em",textTransform:"uppercase",color:"var(--text3)",marginBottom:10}}>Cost parameters</div>
+      <div className="grid2" style={{marginBottom:18}}>
+        <div className="field"><div className="field-label">Cost per acquisition (\u20b9/user)</div><input type="number" value={inp.cpaPerUser} placeholder="5" onChange={e=>save({cpaPerUser:e.target.value})}/><div style={{fontSize:10,color:"var(--text3)",marginTop:3}}>SMS, push notification, email cost</div></div>
+        <div className="field"><div className="field-label">Campaign operational cost (\u20b9)</div><input type="number" value={inp.operationalCost} placeholder="0" onChange={e=>save({operationalCost:e.target.value})}/><div style={{fontSize:10,color:"var(--text3)",marginTop:3}}>Fixed: creative, setup, management</div></div>
+      </div>
+      {ub>0&&<>
+        <div style={{fontSize:10,fontWeight:600,letterSpacing:".08em",textTransform:"uppercase",color:"var(--text3)",margin:"20px 0 12px"}}>Per-user economics</div>
+        <div className="metrics" style={{marginBottom:18}}>
+          <div className="mc"><div className="mc-label">Events during campaign</div><div className="mc-val">{cappedEvents}</div><div className="mc-sub">{aSess}/mo \u00d7 {months.toFixed(1)} mo{offer.sx?" (capped at "+offer.sx+")":""}</div></div>
+          <div className="mc"><div className="mc-label">Reward per user</div><div className="mc-val" style={{color:"var(--red)"}}>\u20b9{rewardPerUser.toFixed(0)}</div><div className="mc-sub">\u20b9{rewardPerQualTxn.toFixed(1)}/event \u00d7 {cappedEvents}</div></div>
+          <div className="mc"><div className="mc-label">Revenue per user</div><div className="mc-val">{isW?"Lagging":"\u20b9"+revenuePerUser.toFixed(0)}</div><div className="mc-sub">{isW?"No direct revenue":cappedEvents+"\u00d7"+aKwh+"kWh\u00d7\u20b9"+aRate}</div></div>
+          <div className="mc"><div className="mc-label">Net value per user</div><div className="mc-val" style={{color:netPerUser>=0?"var(--green)":"var(--red)"}}>{netPerUser>=0?"+":""}\u20b9{netPerUser.toFixed(0)}</div><div className="mc-sub">margin - reward</div></div>
+        </div>
+        <div style={{fontSize:10,fontWeight:600,letterSpacing:".08em",textTransform:"uppercase",color:"var(--text3)",margin:"20px 0 12px"}}>Scaled projection ({ub.toLocaleString()} users)</div>
+        <div className="metrics" style={{marginBottom:18}}>
+          <div className="mc"><div className="mc-label">Users targeted</div><div className="mc-val">{ub.toLocaleString()}</div></div>
+          <div className="mc"><div className="mc-label">Expected to redeem</div><div className="mc-val">{redeemed.toLocaleString()}</div><div className="mc-sub">{(rr*100).toFixed(0)}% redemption</div></div>
+          <div className="mc"><div className="mc-label">Total reward cost</div><div className="mc-val" style={{color:"var(--red)"}}>\u20b9{totalReward.toLocaleString()}</div></div>
+          <div className="mc"><div className="mc-label">Acquisition cost</div><div className="mc-val">\u20b9{totalAcqCost.toLocaleString()}</div><div className="mc-sub">\u20b9{cpau}/user</div></div>
+        </div>
+        <div className="metrics" style={{marginBottom:18}}>
+          <div className="mc"><div className="mc-label">Total revenue</div><div className="mc-val">{isW?"Lagging":"\u20b9"+totalRevenue.toLocaleString()}</div></div>
+          <div className="mc"><div className="mc-label">Total margin</div><div className="mc-val" style={{color:"var(--green)"}}>\u20b9{totalMargin.toLocaleString()}</div><div className="mc-sub">at {marginPct}%</div></div>
+          <div className="mc"><div className="mc-label">Operational cost</div><div className="mc-val">\u20b9{opCost.toLocaleString()}</div></div>
+          <div className="mc"><div className="mc-label">Net P&L</div><div className="mc-val" style={{color:netPL>=0?"var(--green)":"var(--red)",fontSize:32}}>{netPL>=0?"+":""}\u20b9{netPL.toLocaleString()}</div></div>
+        </div>
+        <div style={{fontSize:10,fontWeight:600,letterSpacing:".08em",textTransform:"uppercase",color:"var(--text3)",margin:"20px 0 12px"}}>Sensitivity analysis — what if redemption changes?</div>
+        <div className="scroll-x"><table className="result-tbl">
+          <thead><tr><th>Redemption %</th><th>Users redeem</th><th>Reward cost</th><th>Margin</th><th>Net P&L</th></tr></thead>
+          <tbody>{sensData.map((s,i)=><tr key={i} style={{background:s.rate===parseFloat(inp.redemptionRate)?"var(--accent-bg)":""}}>
+            <td style={{fontWeight:s.rate===parseFloat(inp.redemptionRate)?700:400}}>{s.rate}%{s.rate===parseFloat(inp.redemptionRate)?" \u2190":""}</td>
+            <td>{s.redeemed.toLocaleString()}</td>
+            <td style={{color:"var(--red)"}}>\u20b9{s.reward.toLocaleString()}</td>
+            <td>\u20b9{s.margin.toLocaleString()}</td>
+            <td style={{color:s.net>=0?"var(--green)":"var(--red)",fontWeight:600}}>{s.net>=0?"+":""}\u20b9{s.net.toLocaleString()}</td>
+          </tr>)}</tbody>
+        </table></div>
+        {beRate>0&&beRate<100&&<div style={{marginTop:14,padding:"14px 16px",background:"var(--amber-bg)",borderRadius:"var(--r)",fontSize:13,color:"var(--amber)",lineHeight:1.6}}>Breakeven redemption rate: <strong>{beRate.toFixed(1)}%</strong> — below this rate the offer is profitable, above it you lose money.</div>}
+        {netPL<0&&<div className="risk-item risk" style={{marginTop:8}}>At {(rr*100).toFixed(0)}% redemption, this offer loses \u20b9{Math.abs(netPL).toLocaleString()}. Consider reducing reward rates or narrowing the target audience.</div>}
+      </>}
+    </div>}
+  </div>;
+}
+
 function AIDrawer({offer,offers,open,onClose,step,lastSim}){const[msgs,setMsgs]=useState([{role:"bot",text:"I'm your campaign intelligence engine. Ask anything about your offers."}]),[inp,setInp]=useState(""),[thinking,setThinking]=useState(false);const br=useRef();useEffect(()=>{if(br.current)br.current.scrollTop=br.current.scrollHeight},[msgs]);
   const send=async t=>{if(!t.trim())return;setMsgs(p=>[...p,{role:"user",text:t.trim()}]);setInp("");setThinking(true);const oc=offer?JSON.stringify({name:offer.name,segments:offer.segments,activity:offer.activity,wpre:offer.wpre,w:offer.w,reward:offer.reward,tiers:offer.tiers,dpct:offer.dpct,cy:offer.cy,dy:offer.dy,sn:offer.sn,sx:offer.sx,t:offer.t,ce:offer.ce,ctMode:offer.ctMode,wtMode:offer.wtMode,rc:offer.rc?offer.rcCount+" users":null},null,2):"None";const ao=offers.map(o=>o.name+": "+(o.wpre?"Pre-load":o.reward)+" for "+(o.segments.join(",")||"—")+" ("+o.activity+")").join("\n");const sc=lastSim?"\nSim: ₹"+lastSim.totalReward.toFixed(2)+" reward, "+lastSim.qualTxns+" qual, "+lastSim.effRate.toFixed(1)+"% rate":"";const reply=await callAI(AI_SYS,"Offer:\n"+oc+"\n\nAll:\n"+ao+sc+"\n\nQ: "+t.trim());setThinking(false);setMsgs(p=>[...p,{role:"bot",text:reply}])};
   const qa=AI_QA[step]||AI_QA[5];return<><div className={"ai-overlay "+(open?"open":"")} onClick={onClose}/><div className={"ai-drawer "+(open?"open":"")}><div className="ai-hdr"><div className="ai-hdr-t"><span className="pulse"/> OfferOS AI</div><button className="ai-x" onClick={onClose}>✕</button></div><div className="ai-body" ref={br}>{msgs.map((m,i)=><div key={i} className={"ai-msg "+m.role}><div dangerouslySetInnerHTML={{__html:m.text.replace(/\*\*(.*?)\*\*/g,"<strong>$1</strong>").replace(/`(.*?)`/g,"<code>$1</code>").replace(/•/g,"·").replace(/\n/g,"<br/>")}}/></div>)}{thinking&&<div className="ai-dots"><span><i/><i/><i/></span> Analyzing...</div>}</div><div className="ai-ftr"><div className="ai-ftr-row"><input className="ai-inp" value={inp} placeholder="Ask about this offer..." onChange={e=>setInp(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send(inp)}/><button className="ai-go" onClick={()=>send(inp)}>Ask</button></div><div className="ai-qa">{qa.map(q=><button key={q} onClick={()=>send(q)}>{q}</button>)}</div></div></div></>}
