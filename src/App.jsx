@@ -229,6 +229,39 @@ input[type=text],input[type=number],input[type=date],input[type=password],select
 /* Responsive */
 @media(max-width:900px){.app{grid-template-columns:1fr}.sidebar{position:fixed;top:0;left:0;right:0;bottom:auto;height:auto;flex-direction:row;gap:4px;padding:10px 12px;overflow-x:auto;border-right:none;border-bottom:1px solid var(--border);z-index:20}.sb-section,.sb-foot{display:none}.sb-brand{padding:0 10px 0 4px;border-right:1px solid var(--border);margin-right:6px;font-size:18px}.sb-item{white-space:nowrap;font-size:12px}.main-area{padding-top:56px;height:auto}.content{padding:0 18px 60px}.mobile-bar{display:flex;position:fixed;bottom:0;left:0;right:0;background:var(--bg);border-top:1px solid var(--border);z-index:40;padding:8px 0;box-shadow:0 -2px 10px rgba(0,0,0,.06)}.mobile-bar button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;border:none;background:none;color:var(--text3);font-size:16px;cursor:pointer;padding:6px 0}.mobile-bar button span{font-size:10px;font-weight:500}.mobile-bar button.active{color:var(--accent)}.seg-cards,.offers-grid{grid-template-columns:1fr}.grid2,.bc-grid,.act-grid,.rwd-grid,.dist-grid{grid-template-columns:1fr}.metrics{grid-template-columns:1fr 1fr}.steps{flex-wrap:nowrap}.step{min-width:80px;flex-shrink:0}.ai-drawer{width:100%;right:-100%}.campaign-list{grid-template-columns:1fr}}
 @media(min-width:901px){.mobile-bar{display:none}}
+/* What-If Simulator Knobs */
+.wif-grid{display:grid;grid-template-columns:320px 1fr;gap:22px}
+.wif-knobs{display:flex;flex-direction:column;gap:14px}
+.wif-knob{background:var(--bg);border:1px solid var(--border);border-radius:14px;padding:16px 18px}
+.wif-knob-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px}
+.wif-knob-label{font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--text3);font-weight:600}
+.wif-knob-val{font-family:var(--font-display);font-size:24px;letter-spacing:-0.01em}
+.wif-knob-val .unit{font-size:13px;color:var(--text3);margin-left:2px}
+.wif-track{height:6px;background:var(--bg3);border-radius:3px;position:relative;cursor:pointer;margin:10px 0}
+.wif-track-fill{position:absolute;top:0;left:0;bottom:0;background:var(--accent);border-radius:3px}
+.wif-track-thumb{position:absolute;top:50%;width:18px;height:18px;border-radius:50%;background:var(--bg);border:2px solid var(--accent);transform:translate(-50%,-50%);box-shadow:var(--sh)}
+.wif-knob-meta{display:flex;justify-content:space-between;font-size:10px;color:var(--text3)}
+.wif-result{display:flex;flex-direction:column;gap:14px}
+.wif-headline{background:linear-gradient(180deg,var(--bg),var(--bg2));border:1px solid var(--border);border-radius:18px;padding:22px 24px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:22px}
+.wif-headline-block{padding-right:20px;border-right:1px solid var(--border)}.wif-headline-block:last-child{border-right:none;padding-right:0}
+.wif-headline-label{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);font-weight:600;margin-bottom:8px}
+.wif-headline-val{font-family:var(--font-display);font-size:32px;letter-spacing:-0.015em;line-height:1}
+.wif-headline-delta{display:flex;align-items:center;gap:6px;margin-top:8px;font-size:11px;color:var(--text3)}
+.wif-chip{font-family:var(--font-mono);font-size:11px;padding:2px 8px;border-radius:12px;font-weight:600}
+.wif-chip.up{background:var(--green-bg);color:var(--green)}.wif-chip.down{background:var(--red-bg);color:var(--red)}
+.wif-narrative{background:var(--accent-bg);border-radius:14px;padding:16px 18px;font-size:13px;color:var(--accent2);line-height:1.7}.wif-narrative b{font-weight:600}
+/* Decision Board */
+.db-summary{background:linear-gradient(180deg,var(--bg),var(--bg2));border:1px solid var(--border);border-radius:18px;padding:22px 24px;margin-bottom:20px;display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:22px;align-items:center}
+.db-status{border-right:1px solid var(--border);padding-right:22px}
+.db-status-orb{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-size:20px;margin-bottom:8px}
+.db-status-orb.healthy{background:var(--green-bg);color:var(--green)}.db-status-orb.caution{background:var(--amber-bg);color:var(--amber)}.db-status-orb.risk{background:var(--red-bg);color:var(--red)}
+.db-status-text{font-family:var(--font-display);font-size:20px;line-height:1.1;letter-spacing:-0.01em;margin-bottom:4px}
+.db-status-sub{font-size:11px;color:var(--text3)}
+.db-metric{padding-right:18px;border-right:1px solid var(--border)}.db-metric:last-child{border-right:none}
+.db-metric-label{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--text3);font-weight:600;margin-bottom:6px}
+.db-metric-val{font-family:var(--font-display);font-size:26px;line-height:1;letter-spacing:-0.01em}
+.db-metric-delta{font-size:11px;margin-top:5px;font-weight:500}.db-metric-delta.up{color:var(--green)}.db-metric-delta.down{color:var(--red)}
+@media(max-width:900px){.wif-grid{grid-template-columns:1fr}.wif-headline{grid-template-columns:1fr}.wif-headline-block{border-right:none;border-bottom:1px solid var(--border);padding:0 0 16px}.wif-headline-block:last-child{border-bottom:none}.db-summary{grid-template-columns:1fr}.db-status,.db-metric{border-right:none;border-bottom:1px solid var(--border);padding:0 0 14px}.db-status:last-child,.db-metric:last-child{border-bottom:none}}
 ::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:10px;border:2px solid var(--bg)}::-webkit-scrollbar-thumb:hover{background:var(--text3)}
 `;
 
@@ -606,7 +639,7 @@ function SimulateStep({offer,txns,setTxns,marginPct,onSaveSim}){const[res,setRes
   </>}</>}
 /* ── Scale to User Base ── */
 function ScaleProjector({offer,simResult,simRoi,marginPct,onSave}){
-  const defaults={userBase:"",redemptionRate:"15",avgSessionsPerMonth:"3",avgKwhPerSession:"12",avgRatePerKwh:"22",avgTopupAmount:"300",avgTopupsPerMonth:"2"};
+  const defaults={userBase:"50000",redemptionRate:"15",avgSessionsPerMonth:"3",avgKwhPerSession:"12",avgRatePerKwh:"22",avgTopupAmount:"300",avgTopupsPerMonth:"2"};
   const[inp,setInp]=useState(offer.scaleInputs||defaults);
   const[open,setOpen]=useState(true);
   const save=(v)=>{const n={...inp,...v};setInp(n);onSave(n)};
@@ -629,71 +662,55 @@ function ScaleProjector({offer,simResult,simRoi,marginPct,onSave}){
   const totalReward=redeemed*rewardPerUser;const totalRevenue=redeemed*revenuePerUser;
   const totalMargin=redeemed*marginPerUser;const netPL=totalMargin-totalReward;
   const sensRates=[5,10,15,20,25,30];
-  const sensData=sensRates.map(r=>{const rd=Math.round(ub*(r/100));const tr=rd*rewardPerUser;const tm=rd*revenuePerUser*(marginPct/100);const net=tm-tr;return{rate:r,redeemed:rd,reward:tr,margin:tm,net}});
+  const sensData=sensRates.map(r=>{const rd=Math.round(ub*(r/100));const tr=rd*rewardPerUser;const tm=rd*revenuePerUser*(marginPct/100);return{rate:r,redeemed:rd,reward:tr,margin:tm,net:tm-tr}});
   const beRate=rewardPerUser>0&&marginPerUser>0?((rewardPerUser/marginPerUser)*100):0;
+  const fmt=(v)=>v>=100000?"\u20b9"+(v/100000).toFixed(1)+"L":v>=1000?"\u20b9"+(v/1000).toFixed(0)+"K":"\u20b9"+v.toFixed(0);
+  // Slider helper
+  const Knob=({label,value,unit,min,max,step,onChange})=>{const pct=Math.max(0,Math.min(100,((parseFloat(value)-min)/(max-min))*100));const handleClick=(e)=>{const rect=e.currentTarget.getBoundingClientRect();const x=(e.clientX-rect.left)/rect.width;const nv=Math.round((min+x*(max-min))/(step||1))*(step||1);onChange(String(Math.max(min,Math.min(max,nv))))};return<div className="wif-knob"><div className="wif-knob-head"><span className="wif-knob-label">{label}</span><span className="wif-knob-val">{value}<span className="unit">{unit}</span></span></div><div className="wif-track" onClick={handleClick}><div className="wif-track-fill" style={{width:pct+"%"}}/><div className="wif-track-thumb" style={{left:pct+"%"}}/></div><div className="wif-knob-meta"><span>{min}{unit}</span><span>{max}{unit}</span></div></div>};
   return<div style={{marginTop:28}}>
     <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer",padding:"14px 0",borderTop:"1px solid var(--border)"}} onClick={()=>setOpen(!open)}>
       <div style={{fontFamily:"var(--font-display)",fontSize:22}}>Scale to User Base</div>
-      <span style={{color:"var(--text3)",fontSize:16}}>{open?"▾":"▸"}</span>
+      <span style={{color:"var(--text3)",fontSize:16}}>{open?"\u25be":"\u25b8"}</span>
     </div>
-    {open&&<div className="card">
-      <div style={{fontSize:13,color:"var(--text3)",marginBottom:22}}>Project what happens when this offer is deployed at scale. Uses your simulation results as the per-user baseline.</div>
-      <div style={{fontSize:10,fontWeight:600,letterSpacing:".08em",textTransform:"uppercase",color:"var(--text3)",marginBottom:10}}>Target audience</div>
-      <div className="grid2" style={{marginBottom:20}}>
-        <div className="field"><div className="field-label">Total users to target</div><input type="number" value={inp.userBase} placeholder="50000" onChange={e=>save({userBase:e.target.value})}/></div>
-        <div className="field"><div className="field-label">Expected redemption rate (%)</div><input type="number" value={inp.redemptionRate} placeholder="15" onChange={e=>save({redemptionRate:e.target.value})}/></div>
+    {open&&<>
+      <div style={{fontSize:13,color:"var(--text3)",marginBottom:22}}>Drag the levers to project impact at scale. Results update live using your simulation as baseline.</div>
+      <div className="wif-grid">
+        <div className="wif-knobs">
+          <Knob label="Audience size" value={inp.userBase} unit="" min={1000} max={200000} step={1000} onChange={v=>save({userBase:v})}/>
+          <Knob label="Redemption rate" value={inp.redemptionRate} unit="%" min={1} max={50} step={1} onChange={v=>save({redemptionRate:v})}/>
+          {isCharging&&<Knob label="Avg sessions / month" value={inp.avgSessionsPerMonth} unit="" min={1} max={15} step={1} onChange={v=>save({avgSessionsPerMonth:v})}/>}
+          {isCharging&&<Knob label="Avg kWh / session" value={inp.avgKwhPerSession} unit=" kWh" min={1} max={50} step={1} onChange={v=>save({avgKwhPerSession:v})}/>}
+          {isCharging&&<Knob label="Rate per kWh" value={inp.avgRatePerKwh} unit=" \u20b9" min={10} max={50} step={1} onChange={v=>save({avgRatePerKwh:v})}/>}
+          {isW&&!isP&&<Knob label="Avg top-up amount" value={inp.avgTopupAmount} unit=" \u20b9" min={50} max={2000} step={50} onChange={v=>save({avgTopupAmount:v})}/>}
+          {isW&&!isP&&<Knob label="Top-ups / month" value={inp.avgTopupsPerMonth} unit="" min={1} max={10} step={1} onChange={v=>save({avgTopupsPerMonth:v})}/>}
+        </div>
+        <div className="wif-result">
+          {ub>0&&<>
+            <div className="wif-headline">
+              <div className="wif-headline-block"><div className="wif-headline-label">Net P&L</div><div className="wif-headline-val" style={{color:netPL>=0?"var(--green)":"var(--red)"}}>{netPL>=0?"+":""}{fmt(netPL)}</div><div className="wif-headline-delta"><span className={"wif-chip "+(netPL>=0?"up":"down")}>{redeemed.toLocaleString()} users</span> redeem</div></div>
+              <div className="wif-headline-block"><div className="wif-headline-label">Reward cost</div><div className="wif-headline-val">{fmt(totalReward)}</div><div className="wif-headline-delta">\u20b9{rewardPerUser.toFixed(0)} per user</div></div>
+              <div className="wif-headline-block"><div className="wif-headline-label">Breakeven</div><div className="wif-headline-val">{beRate>0&&beRate<100?beRate.toFixed(1)+"%":"\u2014"}</div><div className="wif-headline-delta">redemption rate</div></div>
+            </div>
+            <div className="card" style={{padding:18}}>
+              <div style={{fontSize:12,fontWeight:600,marginBottom:14}}>Per-user economics</div>
+              <div className="metrics">
+                <div className="mc"><div className="mc-label">Events</div><div className="mc-val">{cappedEvents}</div><div className="mc-sub">{isW?aTpm:aSess}/mo \u00d7 {months.toFixed(1)}mo</div></div>
+                <div className="mc"><div className="mc-label">Reward/user</div><div className="mc-val" style={{color:"var(--red)"}}>\u20b9{rewardPerUser.toFixed(0)}</div></div>
+                <div className="mc"><div className="mc-label">{isW?"Revenue":"Rev/user"}</div><div className="mc-val">{isW?"Lagging":"\u20b9"+revenuePerUser.toFixed(0)}</div></div>
+                <div className="mc"><div className="mc-label">Net/user</div><div className="mc-val" style={{color:netPerUser>=0?"var(--green)":"var(--red)"}}>{netPerUser>=0?"+":""}\u20b9{netPerUser.toFixed(0)}</div></div>
+              </div>
+            </div>
+            <div className="card" style={{padding:0,overflow:"hidden"}}>
+              <div style={{padding:"14px 18px 0",fontSize:11,fontWeight:600,letterSpacing:".06em",textTransform:"uppercase",color:"var(--text3)"}}>Sensitivity</div>
+              <div className="scroll-x" style={{padding:"8px 0"}}><table className="result-tbl"><thead><tr><th>Rate</th><th>Redeem</th><th>Reward</th><th>Margin</th><th>Net</th></tr></thead><tbody>{sensData.map((s,i)=><tr key={i} style={{background:s.rate===parseFloat(inp.redemptionRate)?"var(--accent-bg)":""}}><td style={{fontWeight:s.rate===parseFloat(inp.redemptionRate)?700:400}}>{s.rate}%{s.rate===parseFloat(inp.redemptionRate)?" \u2190":""}</td><td>{s.redeemed.toLocaleString()}</td><td style={{color:"var(--red)"}}>{fmt(s.reward)}</td><td>{fmt(s.margin)}</td><td style={{color:s.net>=0?"var(--green)":"var(--red)",fontWeight:600}}>{s.net>=0?"+":""}{fmt(s.net)}</td></tr>)}</tbody></table></div>
+            </div>
+            {netPL>=0&&<div className="wif-narrative"><b>Looking good.</b> At {(rr*100).toFixed(0)}% redemption across {ub.toLocaleString()} users, this offer generates {fmt(totalMargin)} in margin against {fmt(totalReward)} in rewards \u2014 a net positive of <b>{fmt(netPL)}</b>.{beRate>0&&beRate<100?" You break even at just "+beRate.toFixed(1)+"% redemption, giving you a healthy safety margin.":""}</div>}
+            {netPL<0&&<div className="wif-narrative" style={{background:"var(--red-bg)",color:"var(--red)"}}><b>Watch out.</b> At {(rr*100).toFixed(0)}% redemption, this offer loses <b>{fmt(Math.abs(netPL))}</b>. The reward cost ({fmt(totalReward)}) exceeds the margin ({fmt(totalMargin)}). Consider reducing the cashback rate or narrowing your audience.</div>}
+          </>}
+          {ub===0&&<div className="card" style={{textAlign:"center",padding:40,color:"var(--text3)"}}>Set an audience size to see projections</div>}
+        </div>
       </div>
-      <div style={{fontSize:10,fontWeight:600,letterSpacing:".08em",textTransform:"uppercase",color:"var(--text3)",marginBottom:10}}>User behaviour profile</div>
-      {isCharging&&<><div className="grid2" style={{marginBottom:14}}>
-        <div className="field"><div className="field-label">Avg charging sessions per user/month</div><input type="number" value={inp.avgSessionsPerMonth} placeholder="3" onChange={e=>save({avgSessionsPerMonth:e.target.value})}/></div>
-        <div className="field"><div className="field-label">Avg kWh consumed per session</div><input type="number" value={inp.avgKwhPerSession} placeholder="12" onChange={e=>save({avgKwhPerSession:e.target.value})}/></div>
-      </div>
-      <div className="grid2" style={{marginBottom:14}}>
-        <div className="field"><div className="field-label">Avg rate per kWh (₹)</div><input type="number" value={inp.avgRatePerKwh} placeholder="22" onChange={e=>save({avgRatePerKwh:e.target.value})}/></div>
-        <div className="field"><div className="field-label">Campaign duration</div><div style={{padding:"9px 12px",background:"var(--bg2)",borderRadius:8,fontSize:13,color:"var(--text2)"}}>{days} days ({months.toFixed(1)} months)</div></div>
-      </div></>}
-      {isW&&!isP&&<div className="grid2" style={{marginBottom:14}}>
-        <div className="field"><div className="field-label">Avg wallet top-up amount (₹)</div><input type="number" value={inp.avgTopupAmount} placeholder="300" onChange={e=>save({avgTopupAmount:e.target.value})}/></div>
-        <div className="field"><div className="field-label">Avg top-ups per user/month</div><input type="number" value={inp.avgTopupsPerMonth} placeholder="2" onChange={e=>save({avgTopupsPerMonth:e.target.value})}/></div>
-      </div>}
-      {isP&&<div className="grid2" style={{marginBottom:14}}>
-        <div className="field"><div className="field-label">Pre-loaded balance (₹)</div><div style={{padding:"9px 12px",background:"var(--bg2)",borderRadius:8,fontSize:13,color:"var(--text2)"}}>{offer.w||"—"}</div></div>
-        <div className="field"><div className="field-label">Campaign duration</div><div style={{padding:"9px 12px",background:"var(--bg2)",borderRadius:8,fontSize:13,color:"var(--text2)"}}>{days} days ({months.toFixed(1)} months)</div></div>
-      </div>}
-      {ub>0&&<>
-        <div style={{fontSize:10,fontWeight:600,letterSpacing:".08em",textTransform:"uppercase",color:"var(--text3)",margin:"24px 0 12px"}}>Per-user economics</div>
-        <div className="metrics" style={{marginBottom:18}}>
-          <div className="mc"><div className="mc-label">Events during campaign</div><div className="mc-val">{cappedEvents}</div><div className="mc-sub">{isW?aTpm:aSess}/mo × {months.toFixed(1)} mo{offer.sx?" (capped at "+offer.sx+")":""}</div></div>
-          <div className="mc"><div className="mc-label">Reward per user</div><div className="mc-val" style={{color:"var(--red)"}}>₹{rewardPerUser.toFixed(0)}</div><div className="mc-sub">{isP?"Pre-load amount":"₹"+rewardPerQualTxn.toFixed(1)+"/event × "+cappedEvents}</div></div>
-          <div className="mc"><div className="mc-label">Revenue per user</div><div className="mc-val">{isW?"Lagging":"₹"+revenuePerUser.toFixed(0)}</div><div className="mc-sub">{isW?"From future charging":cappedEvents+"×"+aKwh+"kWh×₹"+aRate}</div></div>
-          <div className="mc"><div className="mc-label">Net value per user</div><div className="mc-val" style={{color:netPerUser>=0?"var(--green)":"var(--red)"}}>{netPerUser>=0?"+":""}₹{netPerUser.toFixed(0)}</div><div className="mc-sub">margin - reward</div></div>
-        </div>
-        <div style={{fontSize:10,fontWeight:600,letterSpacing:".08em",textTransform:"uppercase",color:"var(--text3)",margin:"24px 0 12px"}}>Scaled projection ({ub.toLocaleString()} users)</div>
-        <div className="metrics" style={{marginBottom:18}}>
-          <div className="mc"><div className="mc-label">Users targeted</div><div className="mc-val">{ub.toLocaleString()}</div></div>
-          <div className="mc"><div className="mc-label">Expected to redeem</div><div className="mc-val">{redeemed.toLocaleString()}</div><div className="mc-sub">{(rr*100).toFixed(0)}% redemption</div></div>
-          <div className="mc"><div className="mc-label">Total reward cost</div><div className="mc-val" style={{color:"var(--red)"}}>₹{totalReward.toLocaleString()}</div></div>
-          <div className="mc"><div className="mc-label">Net P&L</div><div className="mc-val" style={{color:netPL>=0?"var(--green)":"var(--red)",fontSize:28}}>{netPL>=0?"+":""}₹{netPL.toLocaleString()}</div><div className="mc-sub">margin - reward cost</div></div>
-        </div>
-        <div className="metrics" style={{marginBottom:18}}>
-          <div className="mc"><div className="mc-label">Total revenue</div><div className="mc-val">{isW?"Lagging":"₹"+totalRevenue.toLocaleString()}</div></div>
-          <div className="mc"><div className="mc-label">Total margin</div><div className="mc-val" style={{color:"var(--green)"}}>₹{totalMargin.toLocaleString()}</div><div className="mc-sub">at {marginPct}%</div></div>
-        </div>
-        <div style={{fontSize:10,fontWeight:600,letterSpacing:".08em",textTransform:"uppercase",color:"var(--text3)",margin:"24px 0 12px"}}>Sensitivity — what if redemption changes?</div>
-        <div className="scroll-x"><table className="result-tbl">
-          <thead><tr><th>Redemption %</th><th>Users redeem</th><th>Reward cost</th><th>Margin</th><th>Net P&L</th></tr></thead>
-          <tbody>{sensData.map((s,i)=><tr key={i} style={{background:s.rate===parseFloat(inp.redemptionRate)?"var(--accent-bg)":""}}>
-            <td style={{fontWeight:s.rate===parseFloat(inp.redemptionRate)?700:400}}>{s.rate}%{s.rate===parseFloat(inp.redemptionRate)?" ←":""}</td>
-            <td>{s.redeemed.toLocaleString()}</td>
-            <td style={{color:"var(--red)"}}>₹{s.reward.toLocaleString()}</td>
-            <td>₹{s.margin.toLocaleString()}</td>
-            <td style={{color:s.net>=0?"var(--green)":"var(--red)",fontWeight:600}}>{s.net>=0?"+":""}₹{s.net.toLocaleString()}</td>
-          </tr>)}</tbody>
-        </table></div>
-        {beRate>0&&beRate<100&&<div style={{marginTop:14,padding:"14px 16px",background:"var(--amber-bg)",borderRadius:"var(--r)",fontSize:13,color:"var(--amber)",lineHeight:1.6}}>Breakeven redemption rate: <strong>{beRate.toFixed(1)}%</strong></div>}
-        {netPL<0&&<div className="risk-item risk" style={{marginTop:8}}>At {(rr*100).toFixed(0)}% redemption, this offer loses ₹{Math.abs(netPL).toLocaleString()}. Consider reducing reward rates or narrowing the target audience.</div>}
-      </>}
-    </div>}
+    </>}
   </div>;
 }
 
@@ -803,16 +820,14 @@ export default function App(){
       <div style={{display:"flex",gap:14,marginBottom:20,alignItems:"center"}}><div className="field" style={{maxWidth:180}}><div className="field-label">Charging margin %</div><input type="number" value={marginPct} min="1" max="100" onChange={e=>updateMargin(parseInt(e.target.value)||30)} style={{padding:"7px 10px"}}/></div><div style={{fontSize:11,color:"var(--text3)",lineHeight:1.5,maxWidth:400}}>Margin on charging net revenue (pre-GST). Wallet top-ups don't generate margin.</div></div>
       {/* Business Impact Projector */}
       <BusinessProjector offers={offers} marginPct={marginPct} projInputs={activeCampaign.projectionInputs} onSave={(inp)=>{setActiveCampaign(p=>({...p,projectionInputs:inp}));api("/campaigns?id="+activeCampaign._id,{method:"PUT",body:{projectionInputs:inp}}).catch(()=>{})}} />
-      {/* Campaign Dashboard */}
+      {/* Campaign Dashboard — Decision Board */}
       {offers.length>0&&<div style={{marginBottom:24}}>
-        <div style={{fontSize:10,fontWeight:600,letterSpacing:".08em",textTransform:"uppercase",color:"var(--text3)",marginBottom:12}}>Campaign overview</div>
-        <div className="metrics" style={{marginBottom:16}}>
-          <div className="mc"><div className="mc-label">Offers</div><div className="mc-val">{offers.length}</div><div className="mc-sub">{offers.filter(o=>o.simResult).length} simulated</div></div>
-          <div className="mc"><div className="mc-label">Total projected cost</div><div className="mc-val" style={{color:offers.some(o=>o.simResult)?"var(--red)":"var(--text3)"}}>₹{offers.reduce((s,o)=>s+(o.simResult?.totalReward||0),0).toFixed(0)}</div></div>
-          <div className="mc"><div className="mc-label">Segments</div><div className="mc-val" style={{fontSize:16}}>{(()=>{const allSegs=[...new Set(offers.flatMap(o=>o.segments||[]))];if(allSegs.includes("All"))return"All segments";const named=allSegs.filter(s=>s!=="All");return named.length>0?named.join(", "):"None set"})()}</div><div className="mc-sub">{offers.filter(o=>!o.segments||o.segments.length===0).length>0?offers.filter(o=>!o.segments||o.segments.length===0).length+" offer(s) without segment":""}</div></div>
-          <div className="mc"><div className="mc-label">Conflicts</div><div className="mc-val" style={{color:Object.keys(conflicts).length>0?"var(--red)":"var(--green)"}}>{Object.keys(conflicts).length>0?Math.round(Object.keys(conflicts).length/2):"None"}</div></div>
-        </div>
-        {/* Offer comparison table */}
+        {(()=>{const totalCost=offers.reduce((s,o)=>s+(o.simResult?.totalReward||0),0);const simCount=offers.filter(o=>o.simResult).length;const allSegs=[...new Set(offers.flatMap(o=>o.segments||[]))];const segText=allSegs.includes("All")?"All segments":allSegs.filter(s=>s!=="All").join(", ")||"None";const conflictCount=Math.round(Object.keys(conflicts).length/2);const hasNeg=offers.some(o=>o.simRoi&&o.simRoi.netImpact<0);const verdict=conflictCount>0?"Conflicts detected":hasNeg?"Some offers losing money":simCount===0?"Not yet tested":totalCost>0?"Viable":"Ready";const orbClass=conflictCount>0||hasNeg?"caution":simCount===0?"caution":"healthy";return<div className="db-summary">
+          <div className="db-status"><div className={"db-status-orb "+orbClass}>{orbClass==="healthy"?"✓":"⚠"}</div><div className="db-status-text">{verdict}</div><div className="db-status-sub">{offers.length} offers · {simCount} simulated</div></div>
+          <div className="db-metric"><div className="db-metric-label">Projected reward</div><div className="db-metric-val" style={{color:totalCost>0?"var(--red)":"var(--text3)"}}>₹{totalCost.toLocaleString()}</div><div className={"db-metric-delta "+(totalCost>0?"down":"")}>{simCount>0?"from "+simCount+" simulations":"run simulations first"}</div></div>
+          <div className="db-metric"><div className="db-metric-label">Segments</div><div className="db-metric-val" style={{fontSize:18}}>{segText}</div><div className="db-metric-delta">{offers.filter(o=>!o.segments||o.segments.length===0).length>0?offers.filter(o=>!o.segments||o.segments.length===0).length+" without segment":""}</div></div>
+          <div className="db-metric" style={{borderRight:"none"}}><div className="db-metric-label">Conflicts</div><div className="db-metric-val" style={{color:conflictCount>0?"var(--red)":"var(--green)"}}>{conflictCount>0?conflictCount:"None"}</div>{conflictCount>0&&<div className="db-metric-delta down">segment + reward overlap</div>}</div>
+        </div>})()}
         {offers.length>1&&<div className="card" style={{padding:0,overflow:"hidden",marginBottom:16}}><div style={{padding:"14px 20px 0",fontSize:10,fontWeight:600,letterSpacing:".08em",textTransform:"uppercase",color:"var(--text3)"}}>Offer comparison</div><div className="scroll-x" style={{padding:"8px 0"}}><table className="result-tbl" style={{minWidth:600}}><thead><tr><th>Offer</th><th>Segment</th><th>Type</th><th>Activity</th><th>Key rate</th><th>Cap</th><th>Duration</th><th>Reward cost</th><th>Net impact</th></tr></thead><tbody>{offers.map(o=>{const tp=o.wpre?"Pre-load":o.reward;const rate=o.wpre?"₹"+(o.w||"—"):o.reward==="Cashback"?(o.tiers?.[0]?.pct||"—")+"%":o.reward==="Discount"?(o.dpct||"—")+"%":o.reward==="ChargeXP"?(o.xpwpct||"—")+" XP/₹":o.p||"—";const cap=o.cy?"₹"+o.cy:o.dy?"₹"+o.dy:"—";const sr=o.simResult;const sRoi=o.simRoi;return<tr key={o._id||o.id} style={{cursor:"pointer"}} onClick={()=>openOffer(o._id||o.id)}><td style={{fontWeight:600}}>{o.name}</td><td>{o.segments?.join(", ")||"—"}</td><td><span style={{fontSize:10,padding:"2px 8px",borderRadius:10,background:"var(--bg3)"}}>{tp}</span></td><td>{o.activity}</td><td>{rate}</td><td>{cap}</td><td>{o.t}d</td><td>{sr?"₹"+sr.totalReward.toFixed(0):"—"}</td><td style={{color:sRoi?(sRoi.netImpact>=0?"var(--green)":"var(--red)"):"var(--text3)"}}>{sRoi?(sRoi.netImpact>=0?"+":"")+"₹"+sRoi.netImpact.toFixed(0):"—"}</td></tr>})}</tbody></table></div></div>}
       </div>}
       <div className="offers-grid">{offers.map(o=>{const tp=o.wpre?"Pre-load":o.reward,oid=o._id||o.id,hc=conflicts[oid],st=getOfferStatus(o);return<div key={oid} className={"offer-card "+(oid===cid?"active":"")} onClick={()=>openOffer(oid)}><div className="offer-card-actions" onClick={e=>e.stopPropagation()}><button onClick={()=>dupOffer(oid)} title="Duplicate">⧉</button><button className="del" onClick={()=>setDelTarget(oid)} title="Delete">×</button></div><div className="offer-card-type"><div className="offer-card-dot" style={{background:DOT_COLORS[tp]}}/><div className="offer-card-label">{tp}</div><span style={{marginLeft:"auto",fontSize:10,padding:"2px 8px",borderRadius:12,background:STATUS_BG[st],color:STATUS_COLORS[st],fontWeight:600}}>{st}</span></div><div className="offer-card-name">{o.name}</div><div className="offer-card-segs">{o.segments?.length?o.segments.join(", "):"No segment"}{o.startDate?" · Starts "+o.startDate:""}</div>{hc&&<div style={{fontSize:10,color:"var(--red)",marginTop:6}}>⚠ {hc[0]}</div>}</div>})}<div className="add-card" onClick={()=>setShowTemplates(true)}>+ New Offer</div></div>
