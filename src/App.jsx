@@ -634,7 +634,7 @@ function ScaleProjector({offer,simResult,simRoi,marginPct,onSave}){
   return<div style={{marginTop:28}}>
     <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer",padding:"14px 0",borderTop:"1px solid var(--border)"}} onClick={()=>setOpen(!open)}>
       <div style={{fontFamily:"var(--font-display)",fontSize:22}}>Scale to User Base</div>
-      <span style={{color:"var(--text3)",fontSize:16}}>{open?"\u25be":"\u25b8"}</span>
+      <span style={{color:"var(--text3)",fontSize:16}}>{open?"▾":"▸"}</span>
     </div>
     {open&&<div className="card">
       <div style={{fontSize:13,color:"var(--text3)",marginBottom:22}}>Project what happens when this offer is deployed at scale. Uses your simulation results as the per-user baseline.</div>
@@ -649,49 +649,49 @@ function ScaleProjector({offer,simResult,simRoi,marginPct,onSave}){
         <div className="field"><div className="field-label">Avg kWh consumed per session</div><input type="number" value={inp.avgKwhPerSession} placeholder="12" onChange={e=>save({avgKwhPerSession:e.target.value})}/></div>
       </div>
       <div className="grid2" style={{marginBottom:14}}>
-        <div className="field"><div className="field-label">Avg rate per kWh (\u20b9)</div><input type="number" value={inp.avgRatePerKwh} placeholder="22" onChange={e=>save({avgRatePerKwh:e.target.value})}/></div>
+        <div className="field"><div className="field-label">Avg rate per kWh (₹)</div><input type="number" value={inp.avgRatePerKwh} placeholder="22" onChange={e=>save({avgRatePerKwh:e.target.value})}/></div>
         <div className="field"><div className="field-label">Campaign duration</div><div style={{padding:"9px 12px",background:"var(--bg2)",borderRadius:8,fontSize:13,color:"var(--text2)"}}>{days} days ({months.toFixed(1)} months)</div></div>
       </div></>}
       {isW&&!isP&&<div className="grid2" style={{marginBottom:14}}>
-        <div className="field"><div className="field-label">Avg wallet top-up amount (\u20b9)</div><input type="number" value={inp.avgTopupAmount} placeholder="300" onChange={e=>save({avgTopupAmount:e.target.value})}/></div>
+        <div className="field"><div className="field-label">Avg wallet top-up amount (₹)</div><input type="number" value={inp.avgTopupAmount} placeholder="300" onChange={e=>save({avgTopupAmount:e.target.value})}/></div>
         <div className="field"><div className="field-label">Avg top-ups per user/month</div><input type="number" value={inp.avgTopupsPerMonth} placeholder="2" onChange={e=>save({avgTopupsPerMonth:e.target.value})}/></div>
       </div>}
       {isP&&<div className="grid2" style={{marginBottom:14}}>
-        <div className="field"><div className="field-label">Pre-loaded balance (\u20b9)</div><div style={{padding:"9px 12px",background:"var(--bg2)",borderRadius:8,fontSize:13,color:"var(--text2)"}}>{offer.w||"\u2014"}</div></div>
+        <div className="field"><div className="field-label">Pre-loaded balance (₹)</div><div style={{padding:"9px 12px",background:"var(--bg2)",borderRadius:8,fontSize:13,color:"var(--text2)"}}>{offer.w||"—"}</div></div>
         <div className="field"><div className="field-label">Campaign duration</div><div style={{padding:"9px 12px",background:"var(--bg2)",borderRadius:8,fontSize:13,color:"var(--text2)"}}>{days} days ({months.toFixed(1)} months)</div></div>
       </div>}
       {ub>0&&<>
         <div style={{fontSize:10,fontWeight:600,letterSpacing:".08em",textTransform:"uppercase",color:"var(--text3)",margin:"24px 0 12px"}}>Per-user economics</div>
         <div className="metrics" style={{marginBottom:18}}>
-          <div className="mc"><div className="mc-label">Events during campaign</div><div className="mc-val">{cappedEvents}</div><div className="mc-sub">{isW?aTpm:aSess}/mo \u00d7 {months.toFixed(1)} mo{offer.sx?" (capped at "+offer.sx+")":""}</div></div>
-          <div className="mc"><div className="mc-label">Reward per user</div><div className="mc-val" style={{color:"var(--red)"}}>\u20b9{rewardPerUser.toFixed(0)}</div><div className="mc-sub">{isP?"Pre-load amount":"\u20b9"+rewardPerQualTxn.toFixed(1)+"/event \u00d7 "+cappedEvents}</div></div>
-          <div className="mc"><div className="mc-label">Revenue per user</div><div className="mc-val">{isW?"Lagging":"\u20b9"+revenuePerUser.toFixed(0)}</div><div className="mc-sub">{isW?"From future charging":cappedEvents+"\u00d7"+aKwh+"kWh\u00d7\u20b9"+aRate}</div></div>
-          <div className="mc"><div className="mc-label">Net value per user</div><div className="mc-val" style={{color:netPerUser>=0?"var(--green)":"var(--red)"}}>{netPerUser>=0?"+":""}\u20b9{netPerUser.toFixed(0)}</div><div className="mc-sub">margin - reward</div></div>
+          <div className="mc"><div className="mc-label">Events during campaign</div><div className="mc-val">{cappedEvents}</div><div className="mc-sub">{isW?aTpm:aSess}/mo × {months.toFixed(1)} mo{offer.sx?" (capped at "+offer.sx+")":""}</div></div>
+          <div className="mc"><div className="mc-label">Reward per user</div><div className="mc-val" style={{color:"var(--red)"}}>₹{rewardPerUser.toFixed(0)}</div><div className="mc-sub">{isP?"Pre-load amount":"₹"+rewardPerQualTxn.toFixed(1)+"/event × "+cappedEvents}</div></div>
+          <div className="mc"><div className="mc-label">Revenue per user</div><div className="mc-val">{isW?"Lagging":"₹"+revenuePerUser.toFixed(0)}</div><div className="mc-sub">{isW?"From future charging":cappedEvents+"×"+aKwh+"kWh×₹"+aRate}</div></div>
+          <div className="mc"><div className="mc-label">Net value per user</div><div className="mc-val" style={{color:netPerUser>=0?"var(--green)":"var(--red)"}}>{netPerUser>=0?"+":""}₹{netPerUser.toFixed(0)}</div><div className="mc-sub">margin - reward</div></div>
         </div>
         <div style={{fontSize:10,fontWeight:600,letterSpacing:".08em",textTransform:"uppercase",color:"var(--text3)",margin:"24px 0 12px"}}>Scaled projection ({ub.toLocaleString()} users)</div>
         <div className="metrics" style={{marginBottom:18}}>
           <div className="mc"><div className="mc-label">Users targeted</div><div className="mc-val">{ub.toLocaleString()}</div></div>
           <div className="mc"><div className="mc-label">Expected to redeem</div><div className="mc-val">{redeemed.toLocaleString()}</div><div className="mc-sub">{(rr*100).toFixed(0)}% redemption</div></div>
-          <div className="mc"><div className="mc-label">Total reward cost</div><div className="mc-val" style={{color:"var(--red)"}}>\u20b9{totalReward.toLocaleString()}</div></div>
-          <div className="mc"><div className="mc-label">Net P&L</div><div className="mc-val" style={{color:netPL>=0?"var(--green)":"var(--red)",fontSize:28}}>{netPL>=0?"+":""}\u20b9{netPL.toLocaleString()}</div><div className="mc-sub">margin - reward cost</div></div>
+          <div className="mc"><div className="mc-label">Total reward cost</div><div className="mc-val" style={{color:"var(--red)"}}>₹{totalReward.toLocaleString()}</div></div>
+          <div className="mc"><div className="mc-label">Net P&L</div><div className="mc-val" style={{color:netPL>=0?"var(--green)":"var(--red)",fontSize:28}}>{netPL>=0?"+":""}₹{netPL.toLocaleString()}</div><div className="mc-sub">margin - reward cost</div></div>
         </div>
         <div className="metrics" style={{marginBottom:18}}>
-          <div className="mc"><div className="mc-label">Total revenue</div><div className="mc-val">{isW?"Lagging":"\u20b9"+totalRevenue.toLocaleString()}</div></div>
-          <div className="mc"><div className="mc-label">Total margin</div><div className="mc-val" style={{color:"var(--green)"}}>\u20b9{totalMargin.toLocaleString()}</div><div className="mc-sub">at {marginPct}%</div></div>
+          <div className="mc"><div className="mc-label">Total revenue</div><div className="mc-val">{isW?"Lagging":"₹"+totalRevenue.toLocaleString()}</div></div>
+          <div className="mc"><div className="mc-label">Total margin</div><div className="mc-val" style={{color:"var(--green)"}}>₹{totalMargin.toLocaleString()}</div><div className="mc-sub">at {marginPct}%</div></div>
         </div>
         <div style={{fontSize:10,fontWeight:600,letterSpacing:".08em",textTransform:"uppercase",color:"var(--text3)",margin:"24px 0 12px"}}>Sensitivity — what if redemption changes?</div>
         <div className="scroll-x"><table className="result-tbl">
           <thead><tr><th>Redemption %</th><th>Users redeem</th><th>Reward cost</th><th>Margin</th><th>Net P&L</th></tr></thead>
           <tbody>{sensData.map((s,i)=><tr key={i} style={{background:s.rate===parseFloat(inp.redemptionRate)?"var(--accent-bg)":""}}>
-            <td style={{fontWeight:s.rate===parseFloat(inp.redemptionRate)?700:400}}>{s.rate}%{s.rate===parseFloat(inp.redemptionRate)?" \u2190":""}</td>
+            <td style={{fontWeight:s.rate===parseFloat(inp.redemptionRate)?700:400}}>{s.rate}%{s.rate===parseFloat(inp.redemptionRate)?" ←":""}</td>
             <td>{s.redeemed.toLocaleString()}</td>
-            <td style={{color:"var(--red)"}}>\u20b9{s.reward.toLocaleString()}</td>
-            <td>\u20b9{s.margin.toLocaleString()}</td>
-            <td style={{color:s.net>=0?"var(--green)":"var(--red)",fontWeight:600}}>{s.net>=0?"+":""}\u20b9{s.net.toLocaleString()}</td>
+            <td style={{color:"var(--red)"}}>₹{s.reward.toLocaleString()}</td>
+            <td>₹{s.margin.toLocaleString()}</td>
+            <td style={{color:s.net>=0?"var(--green)":"var(--red)",fontWeight:600}}>{s.net>=0?"+":""}₹{s.net.toLocaleString()}</td>
           </tr>)}</tbody>
         </table></div>
         {beRate>0&&beRate<100&&<div style={{marginTop:14,padding:"14px 16px",background:"var(--amber-bg)",borderRadius:"var(--r)",fontSize:13,color:"var(--amber)",lineHeight:1.6}}>Breakeven redemption rate: <strong>{beRate.toFixed(1)}%</strong></div>}
-        {netPL<0&&<div className="risk-item risk" style={{marginTop:8}}>At {(rr*100).toFixed(0)}% redemption, this offer loses \u20b9{Math.abs(netPL).toLocaleString()}. Consider reducing reward rates or narrowing the target audience.</div>}
+        {netPL<0&&<div className="risk-item risk" style={{marginTop:8}}>At {(rr*100).toFixed(0)}% redemption, this offer loses ₹{Math.abs(netPL).toLocaleString()}. Consider reducing reward rates or narrowing the target audience.</div>}
       </>}
     </div>}
   </div>;
