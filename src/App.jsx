@@ -606,94 +606,80 @@ function SimulateStep({offer,txns,setTxns,marginPct,onSaveSim}){const[res,setRes
   </>}</>}
 /* ── Scale to User Base ── */
 function ScaleProjector({offer,simResult,simRoi,marginPct,onSave}){
-  const defaults={userBase:"",redemptionRate:"15",avgSessionsPerMonth:"3",avgKwhPerSession:"12",avgRatePerKwh:"22",avgTopupAmount:"300",avgTopupsPerMonth:"2",cpaPerUser:"5",operationalCost:"0"};
+  const defaults={userBase:"",redemptionRate:"15",avgSessionsPerMonth:"3",avgKwhPerSession:"12",avgRatePerKwh:"22",avgTopupAmount:"300",avgTopupsPerMonth:"2"};
   const[inp,setInp]=useState(offer.scaleInputs||defaults);
-  const[open,setOpen]=useState(!!offer.scaleInputs?.userBase);
+  const[open,setOpen]=useState(true);
   const save=(v)=>{const n={...inp,...v};setInp(n);onSave(n)};
   if(!simResult)return null;
-  const isW=offer.activity==="Wallet top-up",isP=!!offer.wpre;
+  const isW=offer.activity==="Wallet top-up",isP=!!offer.wpre,isCharging=!isW;
   const ub=parseFloat(inp.userBase)||0;const rr=(parseFloat(inp.redemptionRate)||0)/100;
   const aSess=parseFloat(inp.avgSessionsPerMonth)||3;const aKwh=parseFloat(inp.avgKwhPerSession)||12;
   const aRate=parseFloat(inp.avgRatePerKwh)||22;const aTopup=parseFloat(inp.avgTopupAmount)||300;
-  const aTpm=parseFloat(inp.avgTopupsPerMonth)||2;const cpau=parseFloat(inp.cpaPerUser)||0;
-  const opCost=parseFloat(inp.operationalCost)||0;
+  const aTpm=parseFloat(inp.avgTopupsPerMonth)||2;
   const days=parseInt(offer.t)||30;const months=days/30;
   const redeemed=Math.round(ub*rr);
-  // Per-user economics from simulation
   const simQual=simResult.qualTxns||1;const simReward=simResult.totalReward||0;
   const rewardPerQualTxn=simQual>0?simReward/simQual:0;
-  // Events per user during campaign
   const eventsPerUser=isW?Math.round(aTpm*months):Math.round(aSess*months);
   const cappedEvents=offer.sx?Math.min(eventsPerUser,parseInt(offer.sx)):eventsPerUser;
-  // Per-user projections
   const rewardPerUser=isP?(parseFloat(offer.w)||0):rewardPerQualTxn*cappedEvents;
-  const revenuePerUser=isW?0:cappedEvents*aKwh*aRate;
+  const revenuePerUser=isCharging?cappedEvents*aKwh*aRate:0;
   const marginPerUser=revenuePerUser*(marginPct/100);
   const netPerUser=marginPerUser-rewardPerUser;
-  // Scale projections
-  const totalReward=redeemed*rewardPerUser;
-  const totalRevenue=redeemed*revenuePerUser;
-  const totalMargin=redeemed*marginPerUser;
-  const totalAcqCost=ub*cpau;
-  const netPL=totalMargin-totalReward-totalAcqCost-opCost;
-  // Sensitivity
+  const totalReward=redeemed*rewardPerUser;const totalRevenue=redeemed*revenuePerUser;
+  const totalMargin=redeemed*marginPerUser;const netPL=totalMargin-totalReward;
   const sensRates=[5,10,15,20,25,30];
-  const sensData=sensRates.map(r=>{const rd=Math.round(ub*(r/100));const tr=rd*rewardPerUser;const tm=rd*revenuePerUser*(marginPct/100);const net=tm-tr-ub*cpau-opCost;return{rate:r,redeemed:rd,reward:tr,margin:tm,net}});
-  // Breakeven
-  const beRate=rewardPerUser>0&&marginPerUser>0?((rewardPerUser/(marginPerUser-cpau||1))*100):0;
+  const sensData=sensRates.map(r=>{const rd=Math.round(ub*(r/100));const tr=rd*rewardPerUser;const tm=rd*revenuePerUser*(marginPct/100);const net=tm-tr;return{rate:r,redeemed:rd,reward:tr,margin:tm,net}});
+  const beRate=rewardPerUser>0&&marginPerUser>0?((rewardPerUser/marginPerUser)*100):0;
   return<div style={{marginTop:28}}>
-    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer",padding:"12px 0"}} onClick={()=>setOpen(!open)}>
-      <div style={{fontSize:10,fontWeight:600,letterSpacing:".08em",textTransform:"uppercase",color:"var(--accent)"}}>Scale to User Base</div>
-      <span style={{color:"var(--text3)",fontSize:14}}>{open?"\u25be":"\u25b8"}</span>
+    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer",padding:"14px 0",borderTop:"1px solid var(--border)"}} onClick={()=>setOpen(!open)}>
+      <div style={{fontFamily:"var(--font-display)",fontSize:22}}>Scale to User Base</div>
+      <span style={{color:"var(--text3)",fontSize:16}}>{open?"\u25be":"\u25b8"}</span>
     </div>
     {open&&<div className="card">
-      <div className="card-title" style={{fontSize:18}}>User Base Impact</div>
-      <div style={{fontSize:12,color:"var(--text3)",marginBottom:20}}>Project what happens when this offer is deployed to your full user base. Uses your simulation results as the per-user baseline.</div>
-      <div style={{fontSize:10,fontWeight:600,letterSpacing:".08em",textTransform:"uppercase",color:"var(--text3)",marginBottom:10}}>User base</div>
-      <div className="grid2" style={{marginBottom:18}}>
+      <div style={{fontSize:13,color:"var(--text3)",marginBottom:22}}>Project what happens when this offer is deployed at scale. Uses your simulation results as the per-user baseline.</div>
+      <div style={{fontSize:10,fontWeight:600,letterSpacing:".08em",textTransform:"uppercase",color:"var(--text3)",marginBottom:10}}>Target audience</div>
+      <div className="grid2" style={{marginBottom:20}}>
         <div className="field"><div className="field-label">Total users to target</div><input type="number" value={inp.userBase} placeholder="50000" onChange={e=>save({userBase:e.target.value})}/></div>
         <div className="field"><div className="field-label">Expected redemption rate (%)</div><input type="number" value={inp.redemptionRate} placeholder="15" onChange={e=>save({redemptionRate:e.target.value})}/></div>
       </div>
       <div style={{fontSize:10,fontWeight:600,letterSpacing:".08em",textTransform:"uppercase",color:"var(--text3)",marginBottom:10}}>User behaviour profile</div>
-      {!isW&&<div className="grid2" style={{marginBottom:14}}>
+      {isCharging&&<><div className="grid2" style={{marginBottom:14}}>
         <div className="field"><div className="field-label">Avg charging sessions per user/month</div><input type="number" value={inp.avgSessionsPerMonth} placeholder="3" onChange={e=>save({avgSessionsPerMonth:e.target.value})}/></div>
         <div className="field"><div className="field-label">Avg kWh consumed per session</div><input type="number" value={inp.avgKwhPerSession} placeholder="12" onChange={e=>save({avgKwhPerSession:e.target.value})}/></div>
-      </div>}
-      {!isW&&<div className="grid2" style={{marginBottom:14}}>
+      </div>
+      <div className="grid2" style={{marginBottom:14}}>
         <div className="field"><div className="field-label">Avg rate per kWh (\u20b9)</div><input type="number" value={inp.avgRatePerKwh} placeholder="22" onChange={e=>save({avgRatePerKwh:e.target.value})}/></div>
         <div className="field"><div className="field-label">Campaign duration</div><div style={{padding:"9px 12px",background:"var(--bg2)",borderRadius:8,fontSize:13,color:"var(--text2)"}}>{days} days ({months.toFixed(1)} months)</div></div>
-      </div>}
+      </div></>}
       {isW&&!isP&&<div className="grid2" style={{marginBottom:14}}>
         <div className="field"><div className="field-label">Avg wallet top-up amount (\u20b9)</div><input type="number" value={inp.avgTopupAmount} placeholder="300" onChange={e=>save({avgTopupAmount:e.target.value})}/></div>
         <div className="field"><div className="field-label">Avg top-ups per user/month</div><input type="number" value={inp.avgTopupsPerMonth} placeholder="2" onChange={e=>save({avgTopupsPerMonth:e.target.value})}/></div>
       </div>}
-      <div style={{fontSize:10,fontWeight:600,letterSpacing:".08em",textTransform:"uppercase",color:"var(--text3)",marginBottom:10}}>Cost parameters</div>
-      <div className="grid2" style={{marginBottom:18}}>
-        <div className="field"><div className="field-label">Cost per acquisition (\u20b9/user)</div><input type="number" value={inp.cpaPerUser} placeholder="5" onChange={e=>save({cpaPerUser:e.target.value})}/><div style={{fontSize:10,color:"var(--text3)",marginTop:3}}>SMS, push notification, email cost</div></div>
-        <div className="field"><div className="field-label">Campaign operational cost (\u20b9)</div><input type="number" value={inp.operationalCost} placeholder="0" onChange={e=>save({operationalCost:e.target.value})}/><div style={{fontSize:10,color:"var(--text3)",marginTop:3}}>Fixed: creative, setup, management</div></div>
-      </div>
+      {isP&&<div className="grid2" style={{marginBottom:14}}>
+        <div className="field"><div className="field-label">Pre-loaded balance (\u20b9)</div><div style={{padding:"9px 12px",background:"var(--bg2)",borderRadius:8,fontSize:13,color:"var(--text2)"}}>{offer.w||"\u2014"}</div></div>
+        <div className="field"><div className="field-label">Campaign duration</div><div style={{padding:"9px 12px",background:"var(--bg2)",borderRadius:8,fontSize:13,color:"var(--text2)"}}>{days} days ({months.toFixed(1)} months)</div></div>
+      </div>}
       {ub>0&&<>
-        <div style={{fontSize:10,fontWeight:600,letterSpacing:".08em",textTransform:"uppercase",color:"var(--text3)",margin:"20px 0 12px"}}>Per-user economics</div>
+        <div style={{fontSize:10,fontWeight:600,letterSpacing:".08em",textTransform:"uppercase",color:"var(--text3)",margin:"24px 0 12px"}}>Per-user economics</div>
         <div className="metrics" style={{marginBottom:18}}>
-          <div className="mc"><div className="mc-label">Events during campaign</div><div className="mc-val">{cappedEvents}</div><div className="mc-sub">{aSess}/mo \u00d7 {months.toFixed(1)} mo{offer.sx?" (capped at "+offer.sx+")":""}</div></div>
-          <div className="mc"><div className="mc-label">Reward per user</div><div className="mc-val" style={{color:"var(--red)"}}>\u20b9{rewardPerUser.toFixed(0)}</div><div className="mc-sub">\u20b9{rewardPerQualTxn.toFixed(1)}/event \u00d7 {cappedEvents}</div></div>
-          <div className="mc"><div className="mc-label">Revenue per user</div><div className="mc-val">{isW?"Lagging":"\u20b9"+revenuePerUser.toFixed(0)}</div><div className="mc-sub">{isW?"No direct revenue":cappedEvents+"\u00d7"+aKwh+"kWh\u00d7\u20b9"+aRate}</div></div>
+          <div className="mc"><div className="mc-label">Events during campaign</div><div className="mc-val">{cappedEvents}</div><div className="mc-sub">{isW?aTpm:aSess}/mo \u00d7 {months.toFixed(1)} mo{offer.sx?" (capped at "+offer.sx+")":""}</div></div>
+          <div className="mc"><div className="mc-label">Reward per user</div><div className="mc-val" style={{color:"var(--red)"}}>\u20b9{rewardPerUser.toFixed(0)}</div><div className="mc-sub">{isP?"Pre-load amount":"\u20b9"+rewardPerQualTxn.toFixed(1)+"/event \u00d7 "+cappedEvents}</div></div>
+          <div className="mc"><div className="mc-label">Revenue per user</div><div className="mc-val">{isW?"Lagging":"\u20b9"+revenuePerUser.toFixed(0)}</div><div className="mc-sub">{isW?"From future charging":cappedEvents+"\u00d7"+aKwh+"kWh\u00d7\u20b9"+aRate}</div></div>
           <div className="mc"><div className="mc-label">Net value per user</div><div className="mc-val" style={{color:netPerUser>=0?"var(--green)":"var(--red)"}}>{netPerUser>=0?"+":""}\u20b9{netPerUser.toFixed(0)}</div><div className="mc-sub">margin - reward</div></div>
         </div>
-        <div style={{fontSize:10,fontWeight:600,letterSpacing:".08em",textTransform:"uppercase",color:"var(--text3)",margin:"20px 0 12px"}}>Scaled projection ({ub.toLocaleString()} users)</div>
+        <div style={{fontSize:10,fontWeight:600,letterSpacing:".08em",textTransform:"uppercase",color:"var(--text3)",margin:"24px 0 12px"}}>Scaled projection ({ub.toLocaleString()} users)</div>
         <div className="metrics" style={{marginBottom:18}}>
           <div className="mc"><div className="mc-label">Users targeted</div><div className="mc-val">{ub.toLocaleString()}</div></div>
           <div className="mc"><div className="mc-label">Expected to redeem</div><div className="mc-val">{redeemed.toLocaleString()}</div><div className="mc-sub">{(rr*100).toFixed(0)}% redemption</div></div>
           <div className="mc"><div className="mc-label">Total reward cost</div><div className="mc-val" style={{color:"var(--red)"}}>\u20b9{totalReward.toLocaleString()}</div></div>
-          <div className="mc"><div className="mc-label">Acquisition cost</div><div className="mc-val">\u20b9{totalAcqCost.toLocaleString()}</div><div className="mc-sub">\u20b9{cpau}/user</div></div>
+          <div className="mc"><div className="mc-label">Net P&L</div><div className="mc-val" style={{color:netPL>=0?"var(--green)":"var(--red)",fontSize:28}}>{netPL>=0?"+":""}\u20b9{netPL.toLocaleString()}</div><div className="mc-sub">margin - reward cost</div></div>
         </div>
         <div className="metrics" style={{marginBottom:18}}>
           <div className="mc"><div className="mc-label">Total revenue</div><div className="mc-val">{isW?"Lagging":"\u20b9"+totalRevenue.toLocaleString()}</div></div>
           <div className="mc"><div className="mc-label">Total margin</div><div className="mc-val" style={{color:"var(--green)"}}>\u20b9{totalMargin.toLocaleString()}</div><div className="mc-sub">at {marginPct}%</div></div>
-          <div className="mc"><div className="mc-label">Operational cost</div><div className="mc-val">\u20b9{opCost.toLocaleString()}</div></div>
-          <div className="mc"><div className="mc-label">Net P&L</div><div className="mc-val" style={{color:netPL>=0?"var(--green)":"var(--red)",fontSize:32}}>{netPL>=0?"+":""}\u20b9{netPL.toLocaleString()}</div></div>
         </div>
-        <div style={{fontSize:10,fontWeight:600,letterSpacing:".08em",textTransform:"uppercase",color:"var(--text3)",margin:"20px 0 12px"}}>Sensitivity analysis — what if redemption changes?</div>
+        <div style={{fontSize:10,fontWeight:600,letterSpacing:".08em",textTransform:"uppercase",color:"var(--text3)",margin:"24px 0 12px"}}>Sensitivity — what if redemption changes?</div>
         <div className="scroll-x"><table className="result-tbl">
           <thead><tr><th>Redemption %</th><th>Users redeem</th><th>Reward cost</th><th>Margin</th><th>Net P&L</th></tr></thead>
           <tbody>{sensData.map((s,i)=><tr key={i} style={{background:s.rate===parseFloat(inp.redemptionRate)?"var(--accent-bg)":""}}>
@@ -704,7 +690,7 @@ function ScaleProjector({offer,simResult,simRoi,marginPct,onSave}){
             <td style={{color:s.net>=0?"var(--green)":"var(--red)",fontWeight:600}}>{s.net>=0?"+":""}\u20b9{s.net.toLocaleString()}</td>
           </tr>)}</tbody>
         </table></div>
-        {beRate>0&&beRate<100&&<div style={{marginTop:14,padding:"14px 16px",background:"var(--amber-bg)",borderRadius:"var(--r)",fontSize:13,color:"var(--amber)",lineHeight:1.6}}>Breakeven redemption rate: <strong>{beRate.toFixed(1)}%</strong> — below this rate the offer is profitable, above it you lose money.</div>}
+        {beRate>0&&beRate<100&&<div style={{marginTop:14,padding:"14px 16px",background:"var(--amber-bg)",borderRadius:"var(--r)",fontSize:13,color:"var(--amber)",lineHeight:1.6}}>Breakeven redemption rate: <strong>{beRate.toFixed(1)}%</strong></div>}
         {netPL<0&&<div className="risk-item risk" style={{marginTop:8}}>At {(rr*100).toFixed(0)}% redemption, this offer loses \u20b9{Math.abs(netPL).toLocaleString()}. Consider reducing reward rates or narrowing the target audience.</div>}
       </>}
     </div>}
