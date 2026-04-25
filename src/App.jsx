@@ -298,55 +298,133 @@ function HomeDashboard({ campaigns, allOffers }) {
 /* ── Campaigns List ── */
 /* ── Business Impact Projector ── */
 function BusinessProjector({ offers, marginPct, projInputs, onSave }) {
-  const [inp, setInp] = useState(projInputs || { targetUsers: "", redemptionRate: "15", avgSessions: "4", avgKwh: "12", avgTopup: "300", ratePerKwh: "22", cpa: "" });
-  const [open, setOpen] = useState(!!projInputs?.targetUsers);
+  const defaults = { segmentSizes: { New: "5000", Dormant: "2000", Engaged: "8000", Existing: "15000" }, redemptionRate: "15", avgMonthlyEvents: "3", avgKwh: "12", avgTopup: "300", ratePerKwh: "22", cpa: "5", campaignPeriodDays: "30" };
+  const [inp, setInp] = useState({ ...defaults, ...projInputs });
+  const [open, setOpen] = useState(!!projInputs?.redemptionRate);
   const save = (v) => { const n = { ...inp, ...v }; setInp(n); onSave(n); };
-  const tu = parseFloat(inp.targetUsers) || 0, rr = (parseFloat(inp.redemptionRate) || 0) / 100, as = parseFloat(inp.avgSessions) || 0, ak = parseFloat(inp.avgKwh) || 0, at = parseFloat(inp.avgTopup) || 0, rpk = parseFloat(inp.ratePerKwh) || 22, cpa = parseFloat(inp.cpa) || 0;
-  const redeemed = Math.round(tu * rr);
-  // Per-user reward from simulation averages
-  let avgRewardPerUser = 0; offers.forEach(o => { if (o.simResult && o.simResult.qualTxns > 0) avgRewardPerUser += o.simResult.totalReward / Math.max(o.simResult.qualTxns, 1) * as; });
-  const totalRewardCost = redeemed * avgRewardPerUser;
-  const totalRevenue = redeemed * as * ak * rpk;
-  const totalMargin = totalRevenue * (marginPct / 100);
-  const totalAcqCost = tu * cpa;
-  const netPL = totalMargin - totalRewardCost - totalAcqCost;
-  const breakEvenRR = totalMargin > 0 && avgRewardPerUser > 0 ? ((avgRewardPerUser * tu + totalAcqCost) / (totalMargin / rr || 1) * 100) : 0;
-  const costPerRedeemed = redeemed > 0 ? (totalRewardCost + totalAcqCost) / redeemed : 0;
-  const hasData = tu > 0 && offers.some(o => o.simResult);
+  const saveSeg = (seg, val) => { const s = { ...inp.segmentSizes, [seg]: val }; save({ segmentSizes: s }); };
+
+  const rr = (parseFloat(inp.redemptionRate) || 0) / 100;
+  const avgEvents = parseFloat(inp.avgMonthlyEvents) || 3;
+  const avgKwh = parseFloat(inp.avgKwh) || 12;
+  const avgTopup = parseFloat(inp.avgTopup) || 300;
+  const rpk = parseFloat(inp.ratePerKwh) || 22;
+  const cpa = parseFloat(inp.cpa) || 0;
+  const periodDays = parseFloat(inp.campaignPeriodDays) || 30;
+  const periodMonths = periodDays / 30;
+
+  // Per-offer feasibility calculation
+  const offerRows = offers.map(o => {
+    const isW = o.activity === "Wallet top-up", isP = !!o.wpre;
+    // Calculate target users for this offer based on segments
+    let targetUsers = 0;
+    (o.segments || []).forEach(s => {
+      if (s === "All") { targetUsers = Object.values(inp.segmentSizes).reduce((sum, v) => sum + (parseFloat(v) || 0), 0); }
+      else { targetUsers += parseFloat(inp.segmentSizes[s]) || 0; }
+    });
+    const redeemed = Math.round(targetUsers * rr);
+    const sessionsPerUser = Math.round(avgEvents * periodMonths);
+
+    // Reward cost per user from simulation
+    let rewardPerUser = 0;
+    if (o.simResult && o.simResult.qualTxns > 0) {
+      const simRewardPerSession = o.simResult.totalReward / o.simResult.qualTxns;
+      rewardPerUser = simRewardPerSession * Math.min(sessionsPerUser, parseInt(o.sx) || sessionsPerUser);
+    }
+    if (isP) rewardPerUser = parseFloat(o.w) || 0;
+
+    const totalRewardCost = redeemed * rewardPerUser;
+    const revenuePerUser = isW ? 0 : sessionsPerUser * avgKwh * rpk;
+    const totalRevenue = redeemed * revenuePerUser;
+    const marginEarned = totalRevenue * (marginPct / 100);
+    const acqCost = targetUsers * cpa;
+    const netImpact = marginEarned - totalRewardCost - acqCost;
+
+    return { offer: o, targetUsers, redeemed, rewardPerUser, totalRewardCost, totalRevenue, marginEarned, acqCost, netImpact, isW, isP, sessionsPerUser };
+  });
+
+  // Totals
+  const totTarget = offerRows.reduce((s, r) => s + r.targetUsers, 0);
+  const totRedeemed = offerRows.reduce((s, r) => s + r.redeemed, 0);
+  const totRewardCost = offerRows.reduce((s, r) => s + r.totalRewardCost, 0);
+  const totRevenue = offerRows.reduce((s, r) => s + r.totalRevenue, 0);
+  const totMargin = offerRows.reduce((s, r) => s + r.marginEarned, 0);
+  const totAcqCost = offerRows.reduce((s, r) => s + r.acqCost, 0);
+  const totNet = totMargin - totRewardCost - totAcqCost;
+  const hasData = offers.length > 0;
+
   return <div style={{ marginBottom: 24 }}>
     <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", padding: "12px 0" }} onClick={() => setOpen(!open)}>
       <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--accent)" }}>Business Impact Projection</div>
       <span style={{ color: "var(--text3)", fontSize: 14 }}>{open ? "▾" : "▸"}</span>
     </div>
     {open && <div className="card">
-      <div style={{ fontSize: 12, color: "var(--text3)", marginBottom: 16 }}>Enter your business assumptions to project campaign-wide costs and returns</div>
+      <div className="card-title" style={{ fontSize: 18 }}>Campaign Feasibility</div>
+      <div style={{ fontSize: 12, color: "var(--text3)", marginBottom: 20 }}>Enter your business assumptions — the tool will project combined impact of all {offers.length} offer{offers.length !== 1 ? "s" : ""} running during this period.</div>
+
+      <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--text3)", marginBottom: 10 }}>Segment sizes (total users in each)</div>
+      <div className="grid2" style={{ marginBottom: 18 }}>
+        {Object.entries(SEGMENTS).filter(([k]) => k !== "All").map(([k, v]) =>
+          <div key={k} className="field"><div className="field-label">{v.label}</div><input type="number" value={inp.segmentSizes?.[k] || ""} placeholder="0" onChange={e => saveSeg(k, e.target.value)} /></div>
+        )}
+      </div>
+
+      <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--text3)", marginBottom: 10 }}>Business parameters</div>
       <div className="grid2" style={{ marginBottom: 14 }}>
-        <div className="field"><div className="field-label">Total target users</div><input type="number" value={inp.targetUsers} placeholder="5000" onChange={e => save({ targetUsers: e.target.value })} /></div>
+        <div className="field"><div className="field-label">Campaign period (days)</div><input type="number" value={inp.campaignPeriodDays} placeholder="30" onChange={e => save({ campaignPeriodDays: e.target.value })} /></div>
         <div className="field"><div className="field-label">Expected redemption rate (%)</div><input type="number" value={inp.redemptionRate} placeholder="15" onChange={e => save({ redemptionRate: e.target.value })} /></div>
       </div>
       <div className="grid2" style={{ marginBottom: 14 }}>
-        <div className="field"><div className="field-label">Avg sessions per user</div><input type="number" value={inp.avgSessions} placeholder="4" onChange={e => save({ avgSessions: e.target.value })} /></div>
+        <div className="field"><div className="field-label">Avg charging events per user/month</div><input type="number" value={inp.avgMonthlyEvents} placeholder="3" onChange={e => save({ avgMonthlyEvents: e.target.value })} /></div>
         <div className="field"><div className="field-label">Avg kWh per session</div><input type="number" value={inp.avgKwh} placeholder="12" onChange={e => save({ avgKwh: e.target.value })} /></div>
       </div>
       <div className="grid2" style={{ marginBottom: 14 }}>
         <div className="field"><div className="field-label">Rate per kWh (₹)</div><input type="number" value={inp.ratePerKwh} placeholder="22" onChange={e => save({ ratePerKwh: e.target.value })} /></div>
-        <div className="field"><div className="field-label">Cost per acquisition (₹)</div><input type="number" value={inp.cpa} placeholder="0" onChange={e => save({ cpa: e.target.value })} /></div>
+        <div className="field"><div className="field-label">Cost per acquisition (₹/user)</div><input type="number" value={inp.cpa} placeholder="5" onChange={e => save({ cpa: e.target.value })} /></div>
       </div>
-      {hasData && <><div style={{ fontSize: 10, fontWeight: 600, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--text3)", margin: "20px 0 12px" }}>Projected outcomes</div>
-        <div className="metrics" style={{ marginBottom: 14 }}>
-          <div className="mc"><div className="mc-label">Users reached</div><div className="mc-val">{tu.toLocaleString()}</div></div>
-          <div className="mc"><div className="mc-label">Expected redemptions</div><div className="mc-val">{redeemed.toLocaleString()}</div><div className="mc-sub">{(rr * 100).toFixed(0)}% of target</div></div>
-          <div className="mc"><div className="mc-label">Total reward cost</div><div className="mc-val" style={{ color: "var(--red)" }}>₹{totalRewardCost.toFixed(0)}</div></div>
-          <div className="mc"><div className="mc-label">Projected revenue</div><div className="mc-val">₹{totalRevenue.toFixed(0)}</div><div className="mc-sub">{redeemed}×{as} sess×{ak}kWh×₹{rpk}</div></div>
+      <div className="field" style={{ marginBottom: 18 }}>
+        <div className="field-label">Avg wallet top-up amount (₹)</div>
+        <input type="number" value={inp.avgTopup} placeholder="300" onChange={e => save({ avgTopup: e.target.value })} style={{ maxWidth: 200 }} />
+      </div>
+
+      {hasData && <>
+        <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--text3)", margin: "24px 0 12px" }}>Combined campaign impact ({periodDays} days)</div>
+        <div className="metrics" style={{ marginBottom: 18 }}>
+          <div className="mc"><div className="mc-label">Total target users</div><div className="mc-val">{totTarget.toLocaleString()}</div><div className="mc-sub">across all offers (may overlap)</div></div>
+          <div className="mc"><div className="mc-label">Expected redemptions</div><div className="mc-val">{totRedeemed.toLocaleString()}</div><div className="mc-sub">{(rr * 100).toFixed(0)}% redemption rate</div></div>
+          <div className="mc"><div className="mc-label">Total reward liability</div><div className="mc-val" style={{ color: "var(--red)" }}>₹{totRewardCost.toLocaleString()}</div><div className="mc-sub">combined cost of all offers</div></div>
+          <div className="mc"><div className="mc-label">Net P&L</div><div className="mc-val" style={{ color: totNet >= 0 ? "var(--green)" : "var(--red)" }}>{totNet >= 0 ? "+" : ""}₹{totNet.toLocaleString()}</div><div className="mc-sub">margin - rewards - acquisition</div></div>
         </div>
-        <div className="metrics">
-          <div className="mc"><div className="mc-label">Margin earned</div><div className="mc-val" style={{ color: "var(--green)" }}>₹{totalMargin.toFixed(0)}</div><div className="mc-sub">at {marginPct}%</div></div>
-          <div className="mc"><div className="mc-label">Acquisition cost</div><div className="mc-val">₹{totalAcqCost.toFixed(0)}</div><div className="mc-sub">₹{cpa}/user × {tu}</div></div>
-          <div className="mc"><div className="mc-label">Net P&L</div><div className="mc-val" style={{ color: netPL >= 0 ? "var(--green)" : "var(--red)" }}>{netPL >= 0 ? "+" : ""}₹{netPL.toFixed(0)}</div></div>
-          <div className="mc"><div className="mc-label">Cost per redeemed user</div><div className="mc-val">₹{costPerRedeemed.toFixed(0)}</div></div>
-        </div>
+
+        {/* Per-offer breakdown */}
+        <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--text3)", marginBottom: 10 }}>Per-offer breakdown</div>
+        <div className="scroll-x"><table className="result-tbl" style={{ minWidth: 700 }}>
+          <thead><tr><th>Offer</th><th>Segment</th><th>Target users</th><th>Redeemed</th><th>Reward/user</th><th>Total reward</th><th>Revenue</th><th>Margin</th><th>Net impact</th></tr></thead>
+          <tbody>{offerRows.map((r, i) => <tr key={i}>
+            <td style={{ fontWeight: 600 }}>{r.offer.name}</td>
+            <td>{(r.offer.segments || []).join(", ") || "—"}</td>
+            <td>{r.targetUsers.toLocaleString()}</td>
+            <td>{r.redeemed.toLocaleString()}</td>
+            <td style={{ fontFamily: "var(--font-mono)" }}>₹{r.rewardPerUser.toFixed(0)}{r.isP ? " (pre-load)" : ""}</td>
+            <td style={{ color: "var(--red)" }}>₹{r.totalRewardCost.toLocaleString()}</td>
+            <td>{r.isW ? "Lagging" : "₹" + r.totalRevenue.toLocaleString()}</td>
+            <td>{r.isW ? "—" : "₹" + r.marginEarned.toLocaleString()}</td>
+            <td style={{ color: r.netImpact >= 0 ? "var(--green)" : "var(--red)", fontWeight: 600 }}>{r.netImpact >= 0 ? "+" : ""}₹{r.netImpact.toLocaleString()}</td>
+          </tr>)}</tbody>
+          <tfoot><tr style={{ fontWeight: 600, borderTop: "2px solid var(--border2)" }}>
+            <td>Total</td><td></td><td>{totTarget.toLocaleString()}</td><td>{totRedeemed.toLocaleString()}</td><td></td>
+            <td style={{ color: "var(--red)" }}>₹{totRewardCost.toLocaleString()}</td>
+            <td>₹{totRevenue.toLocaleString()}</td>
+            <td>₹{totMargin.toLocaleString()}</td>
+            <td style={{ color: totNet >= 0 ? "var(--green)" : "var(--red)" }}>{totNet >= 0 ? "+" : ""}₹{totNet.toLocaleString()}</td>
+          </tr></tfoot>
+        </table></div>
+
+        {/* Warnings */}
+        {offerRows.some(r => !r.offer.simResult) && <div className="risk-item warn" style={{ marginTop: 14 }}>Some offers haven't been simulated yet — their reward/user is estimated at ₹0. Run simulations for accurate projections.</div>}
+        {totNet < 0 && <div className="risk-item risk" style={{ marginTop: 8 }}>Campaign is projected to lose ₹{Math.abs(totNet).toLocaleString()}. Consider reducing reward rates, narrowing segments, or increasing margin.</div>}
+        {offerRows.filter(r => r.targetUsers > 0).length > 1 && <div className="risk-item warn" style={{ marginTop: 8 }}>Target users may overlap across offers if they share segments. Actual reach may be lower than the sum.</div>}
       </>}
-      {!hasData && tu > 0 && <div style={{ padding: "14px", background: "var(--amber-bg)", borderRadius: "var(--r)", fontSize: 12, color: "var(--amber)", marginTop: 14 }}>Run simulations on your offers first to project costs at scale.</div>}
     </div>}
   </div>;
 }
