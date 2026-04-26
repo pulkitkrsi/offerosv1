@@ -588,107 +588,223 @@ function SimulateStep({offer,txns,setTxns,marginPct,onSaveSim}){const[res,setRes
   </>}</>}
 /* ── Scale to User Base ── */
 function ScaleProjector({offer,simResult,simRoi,marginPct,onSave}){
-  const defaults={userBase:"50000",redemptionRate:"15",avgSessionsPerMonth:"3",avgKwhPerSession:"12",avgRatePerKwh:"22",avgTopupAmount:"300",avgTopupsPerMonth:"2",marginAssumption:String(marginPct)};
+  const isW=offer.activity==="Wallet top-up",isP=!!offer.wpre,isCharging=!isW;
+  const days=parseInt(offer.t)||30,months=days/30;
+  // Defaults per type
+  const chargingDefaults={userBase:"50000",redemptionRate:"15",avgSessionsPerMonth:"3",avgKwhPerSession:"12",avgRatePerKwh:"22",marginAssumption:String(marginPct),incrementality:"70"};
+  const walletDefaults={userBase:"50000",redemptionRate:"15",avgTopupsPerMonth:"2",avgTopupAmount:"300",conversionToCharging:"60",avgSessionsAfterTopup:"3",avgKwhPerSession:"12",avgRatePerKwh:"22",marginAssumption:String(marginPct)};
+  const preloadDefaults={userBase:"50000",redemptionRate:"20",avgSessionsFromPreload:"4",avgKwhPerSession:"12",avgRatePerKwh:"22",walletUtilisation:"75",marginAssumption:String(marginPct),incrementality:"50"};
+  const defaults=isP?preloadDefaults:isW?walletDefaults:chargingDefaults;
   const[inp,setInp]=useState(offer.scaleInputs||defaults);
   const[open,setOpen]=useState(true);
   const save=(v)=>{const n={...inp,...v};setInp(n);onSave(n)};
   if(!simResult)return null;
-  const isW=offer.activity==="Wallet top-up",isP=!!offer.wpre,isCharging=!isW;
   const ub=parseFloat(inp.userBase)||0;const rr=(parseFloat(inp.redemptionRate)||0)/100;
-  const aSess=parseFloat(inp.avgSessionsPerMonth)||3;const aKwh=parseFloat(inp.avgKwhPerSession)||12;
-  const aRate=parseFloat(inp.avgRatePerKwh)||22;
-  const aTpm=parseFloat(inp.avgTopupsPerMonth)||2;
-  const mPct=parseFloat(inp.marginAssumption)||marginPct;
-  const days=parseInt(offer.t)||30;const months=days/30;
+  const mPct=(parseFloat(inp.marginAssumption)||marginPct)/100;
   const redeemed=Math.round(ub*rr);
   const simQual=simResult.qualTxns||1;const simReward=simResult.totalReward||0;
   const rewardPerQualTxn=simQual>0?simReward/simQual:0;
-  const eventsPerUser=isW?Math.round(aTpm*months):Math.round(aSess*months);
-  const cappedEvents=offer.sx?Math.min(eventsPerUser,parseInt(offer.sx)):eventsPerUser;
-  const rewardPerUser=isP?(parseFloat(offer.w)||0):rewardPerQualTxn*cappedEvents;
-  const revenuePerUser=isCharging?cappedEvents*aKwh*aRate:0;
-  const marginPerUser=revenuePerUser*(mPct/100);
-  const netPerUser=marginPerUser-rewardPerUser;
-  const totalReward=redeemed*rewardPerUser;const totalRevenue=redeemed*revenuePerUser;
-  const totalMargin=redeemed*marginPerUser;const netPL=totalMargin-totalReward;
-  const beRate=rewardPerUser>0&&marginPerUser>0?((rewardPerUser/marginPerUser)*100):0;
   const fmt=(v)=>{const a=Math.abs(v);const s=v<0?"-":"";return a>=100000?s+"₹"+(a/100000).toFixed(1)+"L":a>=1000?s+"₹"+(a/1000).toFixed(0)+"K":s+"₹"+a.toFixed(0)};
-  // Chart data: net impact across redemption rates 0-50%
-  const chartPts=[];for(let r=0;r<=50;r+=2){const rd=Math.round(ub*(r/100));chartPts.push({r,margin:rd*marginPerUser,reward:rd*rewardPerUser,net:rd*marginPerUser-rd*rewardPerUser})}
-  const chartMax=Math.max(...chartPts.map(p=>Math.max(p.margin,p.reward,Math.abs(p.net))),1);
-  const cx=(r)=>(r/50)*100;const cy=(v)=>100-((v/chartMax)*80+10);
-  const marginLine=chartPts.map(p=>cx(p.r)+","+cy(p.margin)).join(" ");
-  const rewardLine=chartPts.map(p=>cx(p.r)+","+cy(p.reward)).join(" ");
-  const netLine=chartPts.map(p=>cx(p.r)+","+cy(p.net)).join(" ");
-  const netFill="0,"+cy(0)+" "+chartPts.map(p=>cx(p.r)+","+cy(p.net)).join(" ")+" 100,"+cy(0);
-  // Presets
-  const presets={conservative:{redemptionRate:"10",marginAssumption:"35"},balanced:{redemptionRate:"15",marginAssumption:"30"},aggressive:{redemptionRate:"25",marginAssumption:"25"}};
-  const applyPreset=(k)=>save(presets[k]);
-  // Baseline knob helper
-  const Knob=({label,value,unit,min,max,step:st,baseline,baseLabel,onChange})=>{const pct=Math.max(0,Math.min(100,((parseFloat(value)-min)/(max-min))*100));const blPct=baseline?Math.max(0,Math.min(100,((baseline-min)/(max-min))*100)):null;const handleClick=(e)=>{const rect=e.currentTarget.getBoundingClientRect();const x=(e.clientX-rect.left)/rect.width;const nv=Math.round((min+x*(max-min))/(st||1))*(st||1);onChange(String(Math.max(min,Math.min(max,nv))))};return<div className="wif-knob"><div className="wif-knob-head"><span className="wif-knob-label">{label}</span><span className="wif-knob-val">{unit==="%"?value:unit==="₹"?"₹"+value:value}<span className="unit">{unit==="%"?"%":unit==="₹"?"":unit?(" "+unit):""}</span></span></div><div className="wif-track" onClick={handleClick}><div className="wif-track-fill" style={{width:pct+"%"}}/>{blPct!==null&&<div style={{position:"absolute",top:-3,width:2,height:12,background:"var(--text3)",transform:"translateX(-50%)",opacity:.4,left:blPct+"%"}}/>}<div className="wif-track-thumb" style={{left:pct+"%"}}/></div><div className="wif-knob-meta"><span>{min}{unit==="%"?"%":unit==="₹"?"₹":""}</span>{baseline!==undefined&&<span style={{color:"var(--text2)"}}>{baseLabel||"baseline"} <b style={{color:"var(--text)"}}>{baseline}{unit==="%"?"%":unit==="₹"?"₹":""}</b></span>}<span>{max}{unit==="%"?"%":unit==="₹"?"₹":""}{unit==="K"?"K":""}</span></div></div>};
+  const fmtP=(v)=>v.toFixed(1)+"%";
+  // Knob helper
+  const Knob=({label,value,unit,min,max,step:st,baseline,baseLabel,onChange})=>{const pct=Math.max(0,Math.min(100,((parseFloat(value)-min)/(max-min))*100));const blPct=baseline!==undefined?Math.max(0,Math.min(100,((baseline-min)/(max-min))*100)):null;const handleClick=(e)=>{const rect=e.currentTarget.getBoundingClientRect();const x=(e.clientX-rect.left)/rect.width;const nv=Math.round((min+x*(max-min))/(st||1))*(st||1);onChange(String(Math.max(min,Math.min(max,nv))))};return<div className="wif-knob"><div className="wif-knob-head"><span className="wif-knob-label">{label}</span><span className="wif-knob-val">{unit==="₹"?"₹"+value:value}<span className="unit">{unit==="%"?"%":unit==="₹"?"":unit?" "+unit:""}</span></span></div><div className="wif-track" onClick={handleClick}><div className="wif-track-fill" style={{width:pct+"%"}}/>{blPct!==null&&<div style={{position:"absolute",top:-3,width:2,height:12,background:"var(--text3)",transform:"translateX(-50%)",opacity:.4,left:blPct+"%"}}/>}<div className="wif-track-thumb" style={{left:pct+"%"}}/></div><div className="wif-knob-meta"><span>{unit==="₹"?"₹":"" }{min}{unit==="%"?"%":unit==="₹"?"":""}</span>{baseline!==undefined&&<span style={{color:"var(--text2)"}}>{baseLabel||"baseline"} <b style={{color:"var(--text)"}}>{unit==="₹"?"₹":""}{baseline}{unit==="%"?"%":""}</b></span>}<span>{unit==="₹"?"₹":""}{max}{unit==="%"?"%":""}</span></div></div>};
+
+  // ══════════ CHARGING SESSION CASHBACK ══════════
+  let analysis=null;
+  if(isCharging){
+    const aSess=parseFloat(inp.avgSessionsPerMonth)||3;const aKwh=parseFloat(inp.avgKwhPerSession)||12;
+    const aRate=parseFloat(inp.avgRatePerKwh)||22;const incr=(parseFloat(inp.incrementality)||70)/100;
+    const sessPerUser=Math.round(aSess*months);const cappedSess=offer.sx?Math.min(sessPerUser,parseInt(offer.sx)):sessPerUser;
+    const revenuePerSess=aKwh*aRate;const marginPerSess=revenuePerSess*mPct;
+    const cashbackPerSess=rewardPerQualTxn;const netMarginPerSess=marginPerSess-cashbackPerSess;
+    const marginErosion=marginPerSess>0?(cashbackPerSess/marginPerSess)*100:0;
+    const totalSessions=redeemed*cappedSess;const totalRevenue=totalSessions*revenuePerSess;
+    const totalMargin=totalSessions*marginPerSess;const totalCashback=totalSessions*cashbackPerSess;
+    const netTotal=totalMargin-totalCashback;
+    const incrNet=totalMargin*incr-totalCashback;
+    const effRatePerKwh=aRate-(cashbackPerSess/aKwh);
+    // Chart
+    const chartPts=[];for(let r=0;r<=50;r+=2){const rd=Math.round(ub*(r/100));const s=rd*cappedSess;chartPts.push({r,margin:s*marginPerSess,reward:s*cashbackPerSess,net:s*netMarginPerSess})}
+    const chartMax=Math.max(...chartPts.map(p=>Math.max(p.margin,p.reward,Math.abs(p.net))),1);
+    const cx=(r)=>(r/50)*100;const cy=(v)=>100-((v/chartMax)*80+10);
+    analysis={type:"charging",knobs:<>
+      <Knob label="Sessions per user / month" value={inp.avgSessionsPerMonth} unit="" min={1} max={15} step={1} baseline={3} baseLabel="platform avg" onChange={v=>save({avgSessionsPerMonth:v})}/>
+      <Knob label="Avg kWh per session" value={inp.avgKwhPerSession} unit="kWh" min={1} max={50} step={1} baseline={12} baseLabel="platform avg" onChange={v=>save({avgKwhPerSession:v})}/>
+      <Knob label="Rate per kWh" value={inp.avgRatePerKwh} unit="₹" min={10} max={50} step={1} baseline={22} baseLabel="current rate" onChange={v=>save({avgRatePerKwh:v})}/>
+      <Knob label="Redemption rate" value={inp.redemptionRate} unit="%" min={1} max={50} step={1} baseline={15} baseLabel="industry avg" onChange={v=>save({redemptionRate:v})}/>
+      <Knob label="Audience size" value={inp.userBase} unit="" min={1000} max={200000} step={1000} baseline={50000} baseLabel="target" onChange={v=>save({userBase:v})}/>
+      <Knob label="Incrementality" value={inp.incrementality||"70"} unit="%" min={0} max={100} step={5} baseline={70} baseLabel="est." onChange={v=>save({incrementality:v})}/>
+      <Knob label="Margin assumption" value={inp.marginAssumption||String(marginPct)} unit="%" min={15} max={50} step={1} baseline={marginPct} baseLabel="finance set" onChange={v=>save({marginAssumption:v})}/>
+    </>,headline:<div className="wif-headline">
+      <div className="wif-headline-block"><div className="wif-headline-label">Net after cashback</div><div className="wif-headline-val" style={{color:netTotal>=0?"var(--green)":"var(--red)"}}>{netTotal>=0?"+":""}{fmt(netTotal)}</div><div className="wif-headline-delta">{redeemed.toLocaleString()} users × {cappedSess} sessions</div></div>
+      <div className="wif-headline-block"><div className="wif-headline-label">Cashback payout</div><div className="wif-headline-val" style={{color:"var(--red)"}}>{fmt(totalCashback)}</div><div className="wif-headline-delta">{"₹"}{cashbackPerSess.toFixed(0)} per session avg</div></div>
+      <div className="wif-headline-block"><div className="wif-headline-label">Margin erosion</div><div className="wif-headline-val" style={{color:marginErosion>40?"var(--red)":marginErosion>25?"var(--amber)":"var(--green)"}}>{fmtP(marginErosion)}</div><div className="wif-headline-delta">of {fmtP(mPct*100)} margin goes to cashback</div></div>
+    </div>,
+    detail:<>
+      <div className="card" style={{padding:16}}><div style={{fontSize:12,fontWeight:600,marginBottom:12}}>Session-level economics</div><div className="metrics">
+        <div className="mc"><div className="mc-label">Revenue / session</div><div className="mc-val">{"₹"}{revenuePerSess.toFixed(0)}</div><div className="mc-sub">{aKwh}kWh × {"₹"}{aRate}</div></div>
+        <div className="mc"><div className="mc-label">Margin / session</div><div className="mc-val">{"₹"}{marginPerSess.toFixed(0)}</div><div className="mc-sub">{fmtP(mPct*100)} of revenue</div></div>
+        <div className="mc"><div className="mc-label">Cashback / session</div><div className="mc-val" style={{color:"var(--red)"}}>{"₹"}{cashbackPerSess.toFixed(0)}</div><div className="mc-sub">from simulation</div></div>
+        <div className="mc"><div className="mc-label">Net margin / session</div><div className="mc-val" style={{color:netMarginPerSess>=0?"var(--green)":"var(--red)"}}>{netMarginPerSess>=0?"+":""}{"₹"}{netMarginPerSess.toFixed(0)}</div><div className="mc-sub">margin - cashback</div></div>
+      </div></div>
+      <div className="card" style={{padding:16}}><div style={{fontSize:12,fontWeight:600,marginBottom:12}}>Effective pricing after offer</div><div className="metrics">
+        <div className="mc"><div className="mc-label">Rate before offer</div><div className="mc-val">{"₹"}{aRate}/kWh</div></div>
+        <div className="mc"><div className="mc-label">Effective rate after cashback</div><div className="mc-val" style={{color:effRatePerKwh<aRate*0.8?"var(--red)":"var(--text)"}}>{"₹"}{effRatePerKwh.toFixed(1)}/kWh</div><div className="mc-sub">what you actually earn</div></div>
+      </div></div>
+      <div className="card" style={{padding:16}}><div style={{fontSize:12,fontWeight:600,marginBottom:12}}>Incrementality test</div>
+        <div style={{fontSize:13,color:"var(--text2)",lineHeight:1.7,marginBottom:12}}>If <b>{fmtP(incr*100)}</b> of sessions are incremental (wouldn't have happened without the offer), your true net impact is:</div>
+        <div className="metrics">
+          <div className="mc"><div className="mc-label">Incremental margin</div><div className="mc-val">{fmt(totalMargin*incr)}</div><div className="mc-sub">only counting new sessions</div></div>
+          <div className="mc"><div className="mc-label">Full cashback cost</div><div className="mc-val" style={{color:"var(--red)"}}>{fmt(totalCashback)}</div><div className="mc-sub">paid on ALL sessions</div></div>
+          <div className="mc"><div className="mc-label">True net impact</div><div className="mc-val" style={{color:incrNet>=0?"var(--green)":"var(--red)"}}>{incrNet>=0?"+":""}{fmt(incrNet)}</div><div className="mc-sub">{incr*100<100?"lower than headline":"fully incremental"}</div></div>
+        </div>
+        {incrNet<0&&netTotal>=0&&<div className="risk-item warn" style={{marginTop:10}}>The headline looks profitable, but if only {fmtP(incr*100)} of sessions are incremental, you actually lose {fmt(Math.abs(incrNet))}. The rest are users who would have charged anyway — you're just giving them cashback for free.</div>}
+      </div>
+    </>,chart:<div className="card" style={{padding:18}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+        <div style={{fontSize:13,fontWeight:600}}>Margin vs Cashback across redemption rates</div>
+        <div style={{display:"flex",gap:14,fontSize:11,color:"var(--text3)"}}><span><span style={{display:"inline-block",width:8,height:8,borderRadius:2,background:"var(--green)",marginRight:4}}/>Margin</span><span><span style={{display:"inline-block",width:8,height:8,borderRadius:2,background:"var(--red)",marginRight:4}}/>Cashback</span><span><span style={{display:"inline-block",width:8,height:8,borderRadius:2,background:"var(--text)",marginRight:4}}/>Net</span></div>
+      </div>
+      <svg viewBox="0 0 100 100" style={{width:"100%",height:180}} preserveAspectRatio="none">
+        <polygon points={"0,"+cy(0)+" "+chartPts.map(p=>cx(p.r)+","+cy(p.net)).join(" ")+" 100,"+cy(0)} fill="var(--green)" opacity=".06"/>
+        <polyline points={chartPts.map(p=>cx(p.r)+","+cy(p.margin)).join(" ")} fill="none" stroke="var(--green)" strokeWidth=".5"/>
+        <polyline points={chartPts.map(p=>cx(p.r)+","+cy(p.reward)).join(" ")} fill="none" stroke="var(--red)" strokeWidth=".5"/>
+        <polyline points={chartPts.map(p=>cx(p.r)+","+cy(p.net)).join(" ")} fill="none" stroke="var(--text)" strokeWidth=".6"/>
+        <line x1={cx(rr*100)} y1="5" x2={cx(rr*100)} y2="95" stroke="var(--text)" strokeWidth=".3" strokeDasharray="1,1"/>
+        <circle cx={cx(rr*100)} cy={cy(netTotal)} r="1.5" fill="var(--text)"/>
+        <line x1="0" y1={cy(0)} x2="100" y2={cy(0)} stroke="var(--text3)" strokeWidth=".15"/>
+      </svg>
+      <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--text3)",marginTop:4}}><span>0%</span><span>25%</span><span>50%</span></div>
+    </div>,
+    narrative:netTotal>=0?<div className="wif-narrative"><b>Profitable at scale.</b> At {inp.redemptionRate}% redemption, {redeemed.toLocaleString()} users generate {fmt(totalMargin)} in margin. After {fmt(totalCashback)} cashback payout, you net <b>{fmt(netTotal)}</b>. Margin erosion is {fmtP(marginErosion)} — {marginErosion<20?"well within healthy range.":marginErosion<35?"moderate, monitor closely.":"high, consider reducing rates."} Effective per-kWh earning drops from {"₹"}{aRate} to {"₹"}{effRatePerKwh.toFixed(1)}.</div>:<div className="wif-narrative" style={{background:"var(--red-bg)",color:"var(--red)"}}><b>Unprofitable.</b> Cashback cost ({fmt(totalCashback)}) exceeds margin ({fmt(totalMargin)}). Effective kWh rate is {"₹"}{effRatePerKwh.toFixed(1)} — below sustainable levels. Reduce cashback rate or cap, or narrow the audience.</div>};
+  }
+
+  // ══════════ WALLET TOP-UP CASHBACK ══════════
+  if(isW&&!isP){
+    const aTpm=parseFloat(inp.avgTopupsPerMonth)||2;const aTopup=parseFloat(inp.avgTopupAmount)||300;
+    const convRate=(parseFloat(inp.conversionToCharging)||60)/100;
+    const futSess=parseFloat(inp.avgSessionsAfterTopup)||3;const aKwh=parseFloat(inp.avgKwhPerSession)||12;
+    const aRate=parseFloat(inp.avgRatePerKwh)||22;
+    const topupsPerUser=Math.round(aTpm*months);const cashbackPerTopup=rewardPerQualTxn;
+    const totalTopups=redeemed*topupsPerUser;const totalCashback=totalTopups*cashbackPerTopup;
+    const usersWhoCharge=Math.round(redeemed*convRate);const totalFutureSess=usersWhoCharge*futSess;
+    const futureRevenue=totalFutureSess*aKwh*aRate;const futureMargin=futureRevenue*mPct;
+    const netTotal=futureMargin-totalCashback;
+    const paybackMonths=futureMargin>0?(totalCashback/futureMargin)*months:999;
+    const sessToRecover=cashbackPerTopup>0?Math.ceil(cashbackPerTopup/(aKwh*aRate*mPct)):0;
+    analysis={type:"wallet",knobs:<>
+      <Knob label="Top-ups per user / month" value={inp.avgTopupsPerMonth||"2"} unit="" min={1} max={10} step={1} baseline={2} baseLabel="avg" onChange={v=>save({avgTopupsPerMonth:v})}/>
+      <Knob label="Avg top-up amount" value={inp.avgTopupAmount||"300"} unit={"₹"} min={50} max={2000} step={50} baseline={300} baseLabel="platform avg" onChange={v=>save({avgTopupAmount:v})}/>
+      <Knob label="Conversion to charging" value={inp.conversionToCharging||"60"} unit="%" min={10} max={100} step={5} baseline={60} baseLabel="est." onChange={v=>save({conversionToCharging:v})}/>
+      <Knob label="Avg sessions after top-up" value={inp.avgSessionsAfterTopup||"3"} unit="" min={1} max={15} step={1} baseline={3} baseLabel="est." onChange={v=>save({avgSessionsAfterTopup:v})}/>
+      <Knob label="Redemption rate" value={inp.redemptionRate} unit="%" min={1} max={50} step={1} baseline={15} baseLabel="industry" onChange={v=>save({redemptionRate:v})}/>
+      <Knob label="Audience size" value={inp.userBase} unit="" min={1000} max={200000} step={1000} baseline={50000} baseLabel="target" onChange={v=>save({userBase:v})}/>
+    </>,headline:<div className="wif-headline">
+      <div className="wif-headline-block"><div className="wif-headline-label">Cashback cost (leading)</div><div className="wif-headline-val" style={{color:"var(--red)"}}>{fmt(totalCashback)}</div><div className="wif-headline-delta">paid immediately on top-ups</div></div>
+      <div className="wif-headline-block"><div className="wif-headline-label">Future margin (lagging)</div><div className="wif-headline-val" style={{color:futureMargin>0?"var(--green)":"var(--text3)"}}>{fmt(futureMargin)}</div><div className="wif-headline-delta">{usersWhoCharge.toLocaleString()} users convert to charging</div></div>
+      <div className="wif-headline-block"><div className="wif-headline-label">Payback period</div><div className="wif-headline-val">{paybackMonths<24?paybackMonths.toFixed(1)+"mo":"—"}</div><div className="wif-headline-delta">to recover cashback cost</div></div>
+    </div>,
+    detail:<>
+      <div className="card" style={{padding:16}}><div style={{fontSize:12,fontWeight:600,marginBottom:12}}>Cost-to-recovery pipeline</div>
+        <div style={{fontSize:13,color:"var(--text2)",lineHeight:1.8,marginBottom:14}}>
+          <b>{redeemed.toLocaleString()}</b> users top up → you pay <b style={{color:"var(--red)"}}>{fmt(totalCashback)}</b> in cashback immediately.<br/>
+          <b>{fmtP(convRate*100)}</b> convert to charging → <b>{usersWhoCharge.toLocaleString()}</b> users generate <b>{totalFutureSess.toLocaleString()}</b> sessions.<br/>
+          Those sessions earn <b style={{color:"var(--green)"}}>{fmt(futureMargin)}</b> in margin over time.
+        </div>
+        <div className="metrics">
+          <div className="mc"><div className="mc-label">Sessions to recover per user</div><div className="mc-val">{sessToRecover}</div><div className="mc-sub">each cashback recipient needs this many charges</div></div>
+          <div className="mc"><div className="mc-label">Net after recovery</div><div className="mc-val" style={{color:netTotal>=0?"var(--green)":"var(--red)"}}>{netTotal>=0?"+":""}{fmt(netTotal)}</div></div>
+        </div>
+      </div>
+      <div className="card" style={{padding:16}}><div style={{fontSize:12,fontWeight:600,marginBottom:12}}>Conversion risk</div>
+        <div style={{fontSize:12,color:"var(--text2)",lineHeight:1.6,marginBottom:10}}>What if fewer users convert from wallet to charging?</div>
+        <div className="scroll-x"><table className="result-tbl"><thead><tr><th>Conversion</th><th>Users charge</th><th>Future margin</th><th>Net P&L</th></tr></thead><tbody>
+          {[30,40,50,60,70,80].map(c=>{const uc=Math.round(redeemed*(c/100));const fm=uc*futSess*aKwh*aRate*mPct;const n=fm-totalCashback;return<tr key={c} style={{background:c===Math.round(convRate*100)?"var(--accent-bg)":""}}>
+            <td style={{fontWeight:c===Math.round(convRate*100)?700:400}}>{c}%{c===Math.round(convRate*100)?" ←":""}</td><td>{uc.toLocaleString()}</td><td>{fmt(fm)}</td><td style={{color:n>=0?"var(--green)":"var(--red)",fontWeight:600}}>{n>=0?"+":""}{fmt(n)}</td></tr>})}
+        </tbody></table></div>
+      </div>
+    </>,chart:null,
+    narrative:netTotal>=0?<div className="wif-narrative"><b>Recoverable.</b> The {fmt(totalCashback)} cashback cost is a leading investment. If {fmtP(convRate*100)} of users convert to charging ({usersWhoCharge.toLocaleString()} users), the {fmt(futureMargin)} future margin recovers the cost in <b>{paybackMonths.toFixed(1)} months</b>. Net positive: <b>{fmt(netTotal)}</b>.</div>:<div className="wif-narrative" style={{background:"var(--red-bg)",color:"var(--red)"}}><b>Recovery at risk.</b> At {fmtP(convRate*100)} conversion, future margin ({fmt(futureMargin)}) doesn't cover the {fmt(totalCashback)} cashback cost. You need {sessToRecover}+ sessions per user to break even. Increase conversion rate or reduce cashback.</div>};
+  }
+
+  // ══════════ PRE-LOADED WALLET ══════════
+  if(isP){
+    const preloadAmt=parseFloat(offer.w)||0;
+    const sessFromPreload=parseFloat(inp.avgSessionsFromPreload)||4;
+    const aKwh=parseFloat(inp.avgKwhPerSession)||12;const aRate=parseFloat(inp.avgRatePerKwh)||22;
+    const util=(parseFloat(inp.walletUtilisation)||75)/100;const incr=(parseFloat(inp.incrementality)||50)/100;
+    const investPerUser=preloadAmt;const usedPerUser=preloadAmt*util;const wastedPerUser=preloadAmt*(1-util);
+    const totalInvestment=redeemed*investPerUser;const totalWasted=redeemed*wastedPerUser;
+    const sessRevenue=sessFromPreload*aKwh*aRate;const sessMargin=sessRevenue*mPct;
+    const preloadROI=investPerUser>0?((sessMargin-investPerUser)/investPerUser)*100:0;
+    const totalSessions=redeemed*sessFromPreload;const totalRevenue=totalSessions*aKwh*aRate;
+    const totalMargin=totalRevenue*mPct;const netTotal=totalMargin-totalInvestment;
+    const incrNet=totalMargin*incr-totalInvestment;
+    const sessToRecover=investPerUser>0&&aKwh*aRate*mPct>0?Math.ceil(investPerUser/(aKwh*aRate*mPct)):0;
+    analysis={type:"preload",knobs:<>
+      <Knob label="Sessions from pre-load per user" value={inp.avgSessionsFromPreload||"4"} unit="" min={1} max={15} step={1} baseline={4} baseLabel="est." onChange={v=>save({avgSessionsFromPreload:v})}/>
+      <Knob label="Avg kWh per session" value={inp.avgKwhPerSession} unit="kWh" min={1} max={50} step={1} baseline={12} baseLabel="platform avg" onChange={v=>save({avgKwhPerSession:v})}/>
+      <Knob label="Rate per kWh" value={inp.avgRatePerKwh} unit={"₹"} min={10} max={50} step={1} baseline={22} baseLabel="current rate" onChange={v=>save({avgRatePerKwh:v})}/>
+      <Knob label="Wallet utilisation" value={inp.walletUtilisation||"75"} unit="%" min={10} max={100} step={5} baseline={75} baseLabel="est." onChange={v=>save({walletUtilisation:v})}/>
+      <Knob label="Incrementality" value={inp.incrementality||"50"} unit="%" min={0} max={100} step={5} baseline={50} baseLabel="est." onChange={v=>save({incrementality:v})}/>
+      <Knob label="Redemption rate" value={inp.redemptionRate} unit="%" min={1} max={50} step={1} baseline={20} baseLabel="for pre-load" onChange={v=>save({redemptionRate:v})}/>
+      <Knob label="Audience size" value={inp.userBase} unit="" min={1000} max={200000} step={1000} baseline={50000} baseLabel="target" onChange={v=>save({userBase:v})}/>
+    </>,headline:<div className="wif-headline">
+      <div className="wif-headline-block"><div className="wif-headline-label">Total investment</div><div className="wif-headline-val" style={{color:"var(--red)"}}>{fmt(totalInvestment)}</div><div className="wif-headline-delta">{"₹"}{investPerUser} × {redeemed.toLocaleString()} users</div></div>
+      <div className="wif-headline-block"><div className="wif-headline-label">Pre-load ROI</div><div className="wif-headline-val" style={{color:preloadROI>=0?"var(--green)":"var(--red)"}}>{preloadROI>=0?"+":""}{preloadROI.toFixed(0)}%</div><div className="wif-headline-delta">{sessToRecover} sessions to recover</div></div>
+      <div className="wif-headline-block"><div className="wif-headline-label">Balance wasted</div><div className="wif-headline-val" style={{color:util<0.5?"var(--red)":"var(--amber)"}}>{fmt(totalWasted)}</div><div className="wif-headline-delta">{fmtP((1-util)*100)} unused by users</div></div>
+    </div>,
+    detail:<>
+      <div className="card" style={{padding:16}}><div style={{fontSize:12,fontWeight:600,marginBottom:12}}>Pre-load investment flow</div>
+        <div style={{fontSize:13,color:"var(--text2)",lineHeight:1.8,marginBottom:14}}>
+          You invest <b style={{color:"var(--red)"}}>{"₹"}{investPerUser}</b> per user × {redeemed.toLocaleString()} users = <b style={{color:"var(--red)"}}>{fmt(totalInvestment)}</b> total.<br/>
+          Users utilise <b>{fmtP(util*100)}</b> of balance → <b>{"₹"}{usedPerUser.toFixed(0)}</b> spent, <b>{"₹"}{wastedPerUser.toFixed(0)}</b> wasted per user.<br/>
+          Each user does <b>{sessFromPreload}</b> sessions generating <b>{"₹"}{sessRevenue.toFixed(0)}</b> revenue ({"₹"}{sessMargin.toFixed(0)} margin).
+        </div>
+        <div className="metrics">
+          <div className="mc"><div className="mc-label">Revenue from pre-load sessions</div><div className="mc-val">{fmt(totalRevenue)}</div></div>
+          <div className="mc"><div className="mc-label">Margin earned</div><div className="mc-val" style={{color:"var(--green)"}}>{fmt(totalMargin)}</div></div>
+          <div className="mc"><div className="mc-label">Net after investment</div><div className="mc-val" style={{color:netTotal>=0?"var(--green)":"var(--red)"}}>{netTotal>=0?"+":""}{fmt(netTotal)}</div></div>
+        </div>
+      </div>
+      <div className="card" style={{padding:16}}><div style={{fontSize:12,fontWeight:600,marginBottom:12}}>Incrementality test</div>
+        <div style={{fontSize:13,color:"var(--text2)",lineHeight:1.7,marginBottom:12}}>If only <b>{fmtP(incr*100)}</b> of sessions are truly incremental (users wouldn't have charged without the pre-load):</div>
+        <div className="metrics">
+          <div className="mc"><div className="mc-label">Incremental margin</div><div className="mc-val">{fmt(totalMargin*incr)}</div></div>
+          <div className="mc"><div className="mc-label">Full investment</div><div className="mc-val" style={{color:"var(--red)"}}>{fmt(totalInvestment)}</div></div>
+          <div className="mc"><div className="mc-label">True net impact</div><div className="mc-val" style={{color:incrNet>=0?"var(--green)":"var(--red)"}}>{incrNet>=0?"+":""}{fmt(incrNet)}</div></div>
+        </div>
+        {incrNet<0&&<div className="risk-item warn" style={{marginTop:10}}>At {fmtP(incr*100)} incrementality, the pre-load loses {fmt(Math.abs(incrNet))}. Many pre-load sessions may be from users who would have charged anyway.</div>}
+      </div>
+      <div className="card" style={{padding:16}}><div style={{fontSize:12,fontWeight:600,marginBottom:12}}>Utilisation sensitivity</div>
+        <div className="scroll-x"><table className="result-tbl"><thead><tr><th>Utilisation</th><th>Used/user</th><th>Wasted</th><th>Net P&L</th></tr></thead><tbody>
+          {[40,50,60,75,85,95].map(u=>{const wu=preloadAmt*(1-(u/100))*redeemed;const nm=totalMargin-totalInvestment;return<tr key={u} style={{background:u===Math.round(util*100)?"var(--accent-bg)":""}}>
+            <td style={{fontWeight:u===Math.round(util*100)?700:400}}>{u}%{u===Math.round(util*100)?" ←":""}</td><td>{"₹"}{(preloadAmt*(u/100)).toFixed(0)}</td><td style={{color:"var(--red)"}}>{fmt(wu)}</td><td style={{color:nm>=0?"var(--green)":"var(--red)",fontWeight:600}}>{nm>=0?"+":""}{fmt(nm)}</td></tr>})}
+        </tbody></table></div>
+      </div>
+    </>,chart:null,
+    narrative:preloadROI>=0?<div className="wif-narrative"><b>Investment justified.</b> {"₹"}{investPerUser} pre-load generates {"₹"}{sessMargin.toFixed(0)} margin over {sessFromPreload} sessions — a <b>{preloadROI.toFixed(0)}% ROI</b>. At {fmtP(util*100)} utilisation, {fmt(totalWasted)} goes unused. You need just {sessToRecover} sessions per user to break even.</div>:<div className="wif-narrative" style={{background:"var(--red-bg)",color:"var(--red)"}}><b>Investment at risk.</b> {"₹"}{investPerUser} pre-load only generates {"₹"}{sessMargin.toFixed(0)} margin over {sessFromPreload} sessions — a <b>{preloadROI.toFixed(0)}% return</b>. You need {sessToRecover} sessions to break even but only {sessFromPreload} are expected. Reduce pre-load amount or increase session targets.</div>};
+  }
+
+  if(!analysis)return null;
   return<div style={{marginTop:28}}>
     <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer",padding:"14px 0",borderTop:"1px solid var(--border)"}} onClick={()=>setOpen(!open)}>
-      <div><div style={{fontSize:10,fontWeight:600,letterSpacing:".06em",textTransform:"uppercase",color:"var(--text3)"}}>WHAT IF · {offer.name}</div><div style={{fontFamily:"var(--font-display)",fontSize:28,marginTop:4}}>Drag the levers</div></div>
+      <div><div style={{fontSize:10,fontWeight:600,letterSpacing:".06em",textTransform:"uppercase",color:"var(--text3)"}}>SCALE IMPACT · {offer.name}</div><div style={{fontFamily:"var(--font-display)",fontSize:26,marginTop:4}}>Scale Impact Analysis</div></div>
       <span style={{color:"var(--text3)",fontSize:16}}>{open?"▾":"▸"}</span>
     </div>
     {open&&ub>0&&<>
-      <div style={{fontSize:13,color:"var(--text3)",marginBottom:16,maxWidth:560,lineHeight:1.6}}>Each knob updates the projection live. The dashed line is your current configuration.</div>
-      <div style={{display:"flex",gap:8,marginBottom:20}}>
-        <button className={"wt-mode active"} onClick={()=>applyPreset("conservative")}>Conservative</button>
-        <button className="wt-mode" onClick={()=>applyPreset("balanced")}>Balanced</button>
-        <button className="wt-mode" onClick={()=>applyPreset("aggressive")}>Aggressive</button>
-        <button className="wt-mode" onClick={()=>save(defaults)}>Reset to current</button>
+      <div style={{fontSize:13,color:"var(--text3)",marginBottom:16,maxWidth:600,lineHeight:1.6}}>
+        {isCharging&&"Adjust the levers to project how this cashback offer performs at scale. Each change updates all calculations live."}
+        {isW&&!isP&&"Wallet cashback costs are leading — you pay now, revenue comes later from charging. Adjust conversion assumptions to test feasibility."}
+        {isP&&"Pre-load is a direct investment per user. This analysis tests whether the charging sessions it induces justify the cost."}
       </div>
       <div className="wif-grid">
-        <div className="wif-knobs">
-          {isCharging&&<Knob label="Avg sessions / month" value={inp.avgSessionsPerMonth} unit="" min={1} max={15} step={1} baseline={3} baseLabel="current" onChange={v=>save({avgSessionsPerMonth:v})}/>}
-          {isCharging&&<Knob label="Avg kWh / session" value={inp.avgKwhPerSession} unit="kWh" min={1} max={50} step={1} baseline={12} baseLabel="current" onChange={v=>save({avgKwhPerSession:v})}/>}
-          <Knob label="Redemption rate" value={inp.redemptionRate} unit="%" min={1} max={50} step={1} baseline={15} baseLabel="benchmark" onChange={v=>save({redemptionRate:v})}/>
-          <Knob label="Audience size" value={inp.userBase} unit="K" min={1000} max={200000} step={1000} baseline={50000} baseLabel="last camp." onChange={v=>save({userBase:v})}/>
-          <Knob label="Margin assumption" value={inp.marginAssumption||String(marginPct)} unit="%" min={15} max={50} step={1} baseline={marginPct} baseLabel="finance set" onChange={v=>save({marginAssumption:v})}/>
-        </div>
+        <div className="wif-knobs">{analysis.knobs}</div>
         <div className="wif-result">
-          <div className="wif-headline">
-            <div className="wif-headline-block"><div className="wif-headline-label">Net P&L</div><div className="wif-headline-val" style={{color:netPL>=0?"var(--green)":"var(--red)"}}>{netPL>=0?"+":""}{fmt(netPL)}</div><div className="wif-headline-delta"><span className={"wif-chip "+(netPL>=0?"up":"down")}>{netPL>=0?"+":""}{fmt(netPL)}</span> vs current</div></div>
-            <div className="wif-headline-block"><div className="wif-headline-label">Reward cost</div><div className="wif-headline-val">{fmt(totalReward)}</div><div className="wif-headline-delta"><span className={"wif-chip down"}>-{fmt(totalReward)}</span> vs current</div></div>
-            <div className="wif-headline-block"><div className="wif-headline-label">Breakeven</div><div className="wif-headline-val">{beRate>0&&beRate<100?beRate.toFixed(1)+"%":"—"}</div><div className="wif-headline-delta">redemption{beRate>0&&beRate<rr*100?" · safer than "+inp.redemptionRate+"%":""}</div></div>
-          </div>
-          {/* Chart */}
-          <div className="card" style={{padding:18}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-              <div style={{fontSize:13,fontWeight:600}}>Net impact across redemption rates</div>
-              <div style={{display:"flex",gap:14,fontSize:11,color:"var(--text3)"}}>
-                <span><span style={{display:"inline-block",width:8,height:8,borderRadius:2,background:"var(--green)",marginRight:4}}/>Margin</span>
-                <span><span style={{display:"inline-block",width:8,height:8,borderRadius:2,background:"var(--red)",marginRight:4}}/>Reward cost</span>
-                <span><span style={{display:"inline-block",width:8,height:8,borderRadius:2,background:"var(--text)",marginRight:4}}/>Net</span>
-              </div>
-            </div>
-            <svg viewBox="0 0 100 100" style={{width:"100%",height:180}} preserveAspectRatio="none">
-              <polygon points={netFill} fill="var(--green)" opacity=".08"/>
-              <polyline points={marginLine} fill="none" stroke="var(--green)" strokeWidth=".5" strokeLinecap="round"/>
-              <polyline points={rewardLine} fill="none" stroke="var(--red)" strokeWidth=".5" strokeLinecap="round"/>
-              <polyline points={netLine} fill="none" stroke="var(--text)" strokeWidth=".6" strokeLinecap="round"/>
-              <line x1={cx(rr*100)} y1="5" x2={cx(rr*100)} y2="95" stroke="var(--text)" strokeWidth=".3" strokeDasharray="1,1"/>
-              <circle cx={cx(rr*100)} cy={cy(netPL)} r="1.5" fill="var(--text)"/>
-              <line x1="0" y1={cy(0)} x2="100" y2={cy(0)} stroke="var(--text3)" strokeWidth=".15" opacity=".5"/>
-            </svg>
-            <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--text3)",marginTop:4}}>
-              <span>0%</span><span>25%</span><span>50%</span>
-            </div>
-          </div>
-          {/* Narrative */}
-          {netPL>=0&&<div className="wif-narrative"><b>Compared to your current setup:</b> at {inp.redemptionRate}% redemption across {parseInt(inp.userBase).toLocaleString()} users, this offer generates {fmt(totalMargin)} in margin against {fmt(totalReward)} in rewards — a net positive of <b>{fmt(netPL)}</b>.{beRate>0&&beRate<100?" Breakeven drops to "+beRate.toFixed(1)+"% — you're safe even in a soft launch.":""}</div>}
-          {netPL<0&&<div className="wif-narrative" style={{background:"var(--red-bg)",color:"var(--red)"}}><b>Watch out:</b> at {inp.redemptionRate}% redemption, this offer loses <b>{fmt(Math.abs(netPL))}</b>. The reward cost ({fmt(totalReward)}) exceeds the margin ({fmt(totalMargin)}). Consider reducing the rate or narrowing the audience.</div>}
-          {/* Per-user */}
-          <div className="card" style={{padding:16}}>
-            <div style={{fontSize:12,fontWeight:600,marginBottom:12}}>Per-user economics</div>
-            <div className="metrics">
-              <div className="mc"><div className="mc-label">Events</div><div className="mc-val">{cappedEvents}</div><div className="mc-sub">{isW?aTpm:aSess}/mo x {months.toFixed(1)}mo</div></div>
-              <div className="mc"><div className="mc-label">Reward/user</div><div className="mc-val" style={{color:"var(--red)"}}>{"₹"}{rewardPerUser.toFixed(0)}</div></div>
-              <div className="mc"><div className="mc-label">Revenue/user</div><div className="mc-val">{isW?"Lagging":"₹"+revenuePerUser.toFixed(0)}</div></div>
-              <div className="mc"><div className="mc-label">Net/user</div><div className="mc-val" style={{color:netPerUser>=0?"var(--green)":"var(--red)"}}>{netPerUser>=0?"+":""}{"₹"}{netPerUser.toFixed(0)}</div></div>
-            </div>
-          </div>
+          {analysis.headline}
+          {analysis.chart}
+          {analysis.narrative}
+          {analysis.detail}
         </div>
       </div>
     </>}
