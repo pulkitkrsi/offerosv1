@@ -588,7 +588,7 @@ function SimulateStep({offer,txns,setTxns,marginPct,onSaveSim}){const[res,setRes
   </>}</>}
 /* ── Scale to User Base ── */
 function ScaleProjector({offer,simResult,simRoi,marginPct,onSave}){
-  const defaults={userBase:"50000",redemptionRate:"15",avgSessionsPerMonth:"3",avgKwhPerSession:"12",avgRatePerKwh:"22",avgTopupAmount:"300",avgTopupsPerMonth:"2"};
+  const defaults={userBase:"50000",redemptionRate:"15",avgSessionsPerMonth:"3",avgKwhPerSession:"12",avgRatePerKwh:"22",avgTopupAmount:"300",avgTopupsPerMonth:"2",marginAssumption:String(marginPct)};
   const[inp,setInp]=useState(offer.scaleInputs||defaults);
   const[open,setOpen]=useState(true);
   const save=(v)=>{const n={...inp,...v};setInp(n);onSave(n)};
@@ -596,8 +596,9 @@ function ScaleProjector({offer,simResult,simRoi,marginPct,onSave}){
   const isW=offer.activity==="Wallet top-up",isP=!!offer.wpre,isCharging=!isW;
   const ub=parseFloat(inp.userBase)||0;const rr=(parseFloat(inp.redemptionRate)||0)/100;
   const aSess=parseFloat(inp.avgSessionsPerMonth)||3;const aKwh=parseFloat(inp.avgKwhPerSession)||12;
-  const aRate=parseFloat(inp.avgRatePerKwh)||22;const aTopup=parseFloat(inp.avgTopupAmount)||300;
+  const aRate=parseFloat(inp.avgRatePerKwh)||22;
   const aTpm=parseFloat(inp.avgTopupsPerMonth)||2;
+  const mPct=parseFloat(inp.marginAssumption)||marginPct;
   const days=parseInt(offer.t)||30;const months=days/30;
   const redeemed=Math.round(ub*rr);
   const simQual=simResult.qualTxns||1;const simReward=simResult.totalReward||0;
@@ -606,60 +607,92 @@ function ScaleProjector({offer,simResult,simRoi,marginPct,onSave}){
   const cappedEvents=offer.sx?Math.min(eventsPerUser,parseInt(offer.sx)):eventsPerUser;
   const rewardPerUser=isP?(parseFloat(offer.w)||0):rewardPerQualTxn*cappedEvents;
   const revenuePerUser=isCharging?cappedEvents*aKwh*aRate:0;
-  const marginPerUser=revenuePerUser*(marginPct/100);
+  const marginPerUser=revenuePerUser*(mPct/100);
   const netPerUser=marginPerUser-rewardPerUser;
   const totalReward=redeemed*rewardPerUser;const totalRevenue=redeemed*revenuePerUser;
   const totalMargin=redeemed*marginPerUser;const netPL=totalMargin-totalReward;
-  const sensRates=[5,10,15,20,25,30];
-  const sensData=sensRates.map(r=>{const rd=Math.round(ub*(r/100));const tr=rd*rewardPerUser;const tm=rd*revenuePerUser*(marginPct/100);return{rate:r,redeemed:rd,reward:tr,margin:tm,net:tm-tr}});
   const beRate=rewardPerUser>0&&marginPerUser>0?((rewardPerUser/marginPerUser)*100):0;
-  const fmt=(v)=>v>=100000?"\u20b9"+(v/100000).toFixed(1)+"L":v>=1000?"\u20b9"+(v/1000).toFixed(0)+"K":"\u20b9"+v.toFixed(0);
-  // Slider helper
-  const Knob=({label,value,unit,min,max,step,onChange})=>{const pct=Math.max(0,Math.min(100,((parseFloat(value)-min)/(max-min))*100));const handleClick=(e)=>{const rect=e.currentTarget.getBoundingClientRect();const x=(e.clientX-rect.left)/rect.width;const nv=Math.round((min+x*(max-min))/(step||1))*(step||1);onChange(String(Math.max(min,Math.min(max,nv))))};return<div className="wif-knob"><div className="wif-knob-head"><span className="wif-knob-label">{label}</span><span className="wif-knob-val">{value}<span className="unit">{unit}</span></span></div><div className="wif-track" onClick={handleClick}><div className="wif-track-fill" style={{width:pct+"%"}}/><div className="wif-track-thumb" style={{left:pct+"%"}}/></div><div className="wif-knob-meta"><span>{min}{unit}</span><span>{max}{unit}</span></div></div>};
+  const fmt=(v)=>{const a=Math.abs(v);const s=v<0?"-":"";return a>=100000?s+"₹"+(a/100000).toFixed(1)+"L":a>=1000?s+"₹"+(a/1000).toFixed(0)+"K":s+"₹"+a.toFixed(0)};
+  // Chart data: net impact across redemption rates 0-50%
+  const chartPts=[];for(let r=0;r<=50;r+=2){const rd=Math.round(ub*(r/100));chartPts.push({r,margin:rd*marginPerUser,reward:rd*rewardPerUser,net:rd*marginPerUser-rd*rewardPerUser})}
+  const chartMax=Math.max(...chartPts.map(p=>Math.max(p.margin,p.reward,Math.abs(p.net))),1);
+  const cx=(r)=>(r/50)*100;const cy=(v)=>100-((v/chartMax)*80+10);
+  const marginLine=chartPts.map(p=>cx(p.r)+","+cy(p.margin)).join(" ");
+  const rewardLine=chartPts.map(p=>cx(p.r)+","+cy(p.reward)).join(" ");
+  const netLine=chartPts.map(p=>cx(p.r)+","+cy(p.net)).join(" ");
+  const netFill="0,"+cy(0)+" "+chartPts.map(p=>cx(p.r)+","+cy(p.net)).join(" ")+" 100,"+cy(0);
+  // Presets
+  const presets={conservative:{redemptionRate:"10",marginAssumption:"35"},balanced:{redemptionRate:"15",marginAssumption:"30"},aggressive:{redemptionRate:"25",marginAssumption:"25"}};
+  const applyPreset=(k)=>save(presets[k]);
+  // Baseline knob helper
+  const Knob=({label,value,unit,min,max,step:st,baseline,baseLabel,onChange})=>{const pct=Math.max(0,Math.min(100,((parseFloat(value)-min)/(max-min))*100));const blPct=baseline?Math.max(0,Math.min(100,((baseline-min)/(max-min))*100)):null;const handleClick=(e)=>{const rect=e.currentTarget.getBoundingClientRect();const x=(e.clientX-rect.left)/rect.width;const nv=Math.round((min+x*(max-min))/(st||1))*(st||1);onChange(String(Math.max(min,Math.min(max,nv))))};return<div className="wif-knob"><div className="wif-knob-head"><span className="wif-knob-label">{label}</span><span className="wif-knob-val">{unit==="%"?value:unit==="₹"?"₹"+value:value}<span className="unit">{unit==="%"?"%":unit==="₹"?"":unit?(" "+unit):""}</span></span></div><div className="wif-track" onClick={handleClick}><div className="wif-track-fill" style={{width:pct+"%"}}/>{blPct!==null&&<div style={{position:"absolute",top:-3,width:2,height:12,background:"var(--text3)",transform:"translateX(-50%)",opacity:.4,left:blPct+"%"}}/>}<div className="wif-track-thumb" style={{left:pct+"%"}}/></div><div className="wif-knob-meta"><span>{min}{unit==="%"?"%":unit==="₹"?"₹":""}</span>{baseline!==undefined&&<span style={{color:"var(--text2)"}}>{baseLabel||"baseline"} <b style={{color:"var(--text)"}}>{baseline}{unit==="%"?"%":unit==="₹"?"₹":""}</b></span>}<span>{max}{unit==="%"?"%":unit==="₹"?"₹":""}{unit==="K"?"K":""}</span></div></div>};
   return<div style={{marginTop:28}}>
     <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",cursor:"pointer",padding:"14px 0",borderTop:"1px solid var(--border)"}} onClick={()=>setOpen(!open)}>
-      <div style={{fontFamily:"var(--font-display)",fontSize:22}}>Scale to User Base</div>
-      <span style={{color:"var(--text3)",fontSize:16}}>{open?"\u25be":"\u25b8"}</span>
+      <div><div style={{fontSize:10,fontWeight:600,letterSpacing:".06em",textTransform:"uppercase",color:"var(--text3)"}}>WHAT IF · {offer.name}</div><div style={{fontFamily:"var(--font-display)",fontSize:28,marginTop:4}}>Drag the levers</div></div>
+      <span style={{color:"var(--text3)",fontSize:16}}>{open?"▾":"▸"}</span>
     </div>
-    {open&&<>
-      <div style={{fontSize:13,color:"var(--text3)",marginBottom:22}}>Drag the levers to project impact at scale. Results update live using your simulation as baseline.</div>
+    {open&&ub>0&&<>
+      <div style={{fontSize:13,color:"var(--text3)",marginBottom:16,maxWidth:560,lineHeight:1.6}}>Each knob updates the projection live. The dashed line is your current configuration.</div>
+      <div style={{display:"flex",gap:8,marginBottom:20}}>
+        <button className={"wt-mode active"} onClick={()=>applyPreset("conservative")}>Conservative</button>
+        <button className="wt-mode" onClick={()=>applyPreset("balanced")}>Balanced</button>
+        <button className="wt-mode" onClick={()=>applyPreset("aggressive")}>Aggressive</button>
+        <button className="wt-mode" onClick={()=>save(defaults)}>Reset to current</button>
+      </div>
       <div className="wif-grid">
         <div className="wif-knobs">
-          <Knob label="Audience size" value={inp.userBase} unit="" min={1000} max={200000} step={1000} onChange={v=>save({userBase:v})}/>
-          <Knob label="Redemption rate" value={inp.redemptionRate} unit="%" min={1} max={50} step={1} onChange={v=>save({redemptionRate:v})}/>
-          {isCharging&&<Knob label="Avg sessions / month" value={inp.avgSessionsPerMonth} unit="" min={1} max={15} step={1} onChange={v=>save({avgSessionsPerMonth:v})}/>}
-          {isCharging&&<Knob label="Avg kWh / session" value={inp.avgKwhPerSession} unit=" kWh" min={1} max={50} step={1} onChange={v=>save({avgKwhPerSession:v})}/>}
-          {isCharging&&<Knob label="Rate per kWh" value={inp.avgRatePerKwh} unit=" \u20b9" min={10} max={50} step={1} onChange={v=>save({avgRatePerKwh:v})}/>}
-          {isW&&!isP&&<Knob label="Avg top-up amount" value={inp.avgTopupAmount} unit=" \u20b9" min={50} max={2000} step={50} onChange={v=>save({avgTopupAmount:v})}/>}
-          {isW&&!isP&&<Knob label="Top-ups / month" value={inp.avgTopupsPerMonth} unit="" min={1} max={10} step={1} onChange={v=>save({avgTopupsPerMonth:v})}/>}
+          {isCharging&&<Knob label="Avg sessions / month" value={inp.avgSessionsPerMonth} unit="" min={1} max={15} step={1} baseline={3} baseLabel="current" onChange={v=>save({avgSessionsPerMonth:v})}/>}
+          {isCharging&&<Knob label="Avg kWh / session" value={inp.avgKwhPerSession} unit="kWh" min={1} max={50} step={1} baseline={12} baseLabel="current" onChange={v=>save({avgKwhPerSession:v})}/>}
+          <Knob label="Redemption rate" value={inp.redemptionRate} unit="%" min={1} max={50} step={1} baseline={15} baseLabel="benchmark" onChange={v=>save({redemptionRate:v})}/>
+          <Knob label="Audience size" value={inp.userBase} unit="K" min={1000} max={200000} step={1000} baseline={50000} baseLabel="last camp." onChange={v=>save({userBase:v})}/>
+          <Knob label="Margin assumption" value={inp.marginAssumption||String(marginPct)} unit="%" min={15} max={50} step={1} baseline={marginPct} baseLabel="finance set" onChange={v=>save({marginAssumption:v})}/>
         </div>
         <div className="wif-result">
-          {ub>0&&<>
-            <div className="wif-headline">
-              <div className="wif-headline-block"><div className="wif-headline-label">Net P&L</div><div className="wif-headline-val" style={{color:netPL>=0?"var(--green)":"var(--red)"}}>{netPL>=0?"+":""}{fmt(netPL)}</div><div className="wif-headline-delta"><span className={"wif-chip "+(netPL>=0?"up":"down")}>{redeemed.toLocaleString()} users</span> redeem</div></div>
-              <div className="wif-headline-block"><div className="wif-headline-label">Reward cost</div><div className="wif-headline-val">{fmt(totalReward)}</div><div className="wif-headline-delta">\u20b9{rewardPerUser.toFixed(0)} per user</div></div>
-              <div className="wif-headline-block"><div className="wif-headline-label">Breakeven</div><div className="wif-headline-val">{beRate>0&&beRate<100?beRate.toFixed(1)+"%":"\u2014"}</div><div className="wif-headline-delta">redemption rate</div></div>
-            </div>
-            <div className="card" style={{padding:18}}>
-              <div style={{fontSize:12,fontWeight:600,marginBottom:14}}>Per-user economics</div>
-              <div className="metrics">
-                <div className="mc"><div className="mc-label">Events</div><div className="mc-val">{cappedEvents}</div><div className="mc-sub">{isW?aTpm:aSess}/mo \u00d7 {months.toFixed(1)}mo</div></div>
-                <div className="mc"><div className="mc-label">Reward/user</div><div className="mc-val" style={{color:"var(--red)"}}>\u20b9{rewardPerUser.toFixed(0)}</div></div>
-                <div className="mc"><div className="mc-label">{isW?"Revenue":"Rev/user"}</div><div className="mc-val">{isW?"Lagging":"\u20b9"+revenuePerUser.toFixed(0)}</div></div>
-                <div className="mc"><div className="mc-label">Net/user</div><div className="mc-val" style={{color:netPerUser>=0?"var(--green)":"var(--red)"}}>{netPerUser>=0?"+":""}\u20b9{netPerUser.toFixed(0)}</div></div>
+          <div className="wif-headline">
+            <div className="wif-headline-block"><div className="wif-headline-label">Net P&L</div><div className="wif-headline-val" style={{color:netPL>=0?"var(--green)":"var(--red)"}}>{netPL>=0?"+":""}{fmt(netPL)}</div><div className="wif-headline-delta"><span className={"wif-chip "+(netPL>=0?"up":"down")}>{netPL>=0?"+":""}{fmt(netPL)}</span> vs current</div></div>
+            <div className="wif-headline-block"><div className="wif-headline-label">Reward cost</div><div className="wif-headline-val">{fmt(totalReward)}</div><div className="wif-headline-delta"><span className={"wif-chip down"}>-{fmt(totalReward)}</span> vs current</div></div>
+            <div className="wif-headline-block"><div className="wif-headline-label">Breakeven</div><div className="wif-headline-val">{beRate>0&&beRate<100?beRate.toFixed(1)+"%":"—"}</div><div className="wif-headline-delta">redemption{beRate>0&&beRate<rr*100?" · safer than "+inp.redemptionRate+"%":""}</div></div>
+          </div>
+          {/* Chart */}
+          <div className="card" style={{padding:18}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+              <div style={{fontSize:13,fontWeight:600}}>Net impact across redemption rates</div>
+              <div style={{display:"flex",gap:14,fontSize:11,color:"var(--text3)"}}>
+                <span><span style={{display:"inline-block",width:8,height:8,borderRadius:2,background:"var(--green)",marginRight:4}}/>Margin</span>
+                <span><span style={{display:"inline-block",width:8,height:8,borderRadius:2,background:"var(--red)",marginRight:4}}/>Reward cost</span>
+                <span><span style={{display:"inline-block",width:8,height:8,borderRadius:2,background:"var(--text)",marginRight:4}}/>Net</span>
               </div>
             </div>
-            <div className="card" style={{padding:0,overflow:"hidden"}}>
-              <div style={{padding:"14px 18px 0",fontSize:11,fontWeight:600,letterSpacing:".06em",textTransform:"uppercase",color:"var(--text3)"}}>Sensitivity</div>
-              <div className="scroll-x" style={{padding:"8px 0"}}><table className="result-tbl"><thead><tr><th>Rate</th><th>Redeem</th><th>Reward</th><th>Margin</th><th>Net</th></tr></thead><tbody>{sensData.map((s,i)=><tr key={i} style={{background:s.rate===parseFloat(inp.redemptionRate)?"var(--accent-bg)":""}}><td style={{fontWeight:s.rate===parseFloat(inp.redemptionRate)?700:400}}>{s.rate}%{s.rate===parseFloat(inp.redemptionRate)?" \u2190":""}</td><td>{s.redeemed.toLocaleString()}</td><td style={{color:"var(--red)"}}>{fmt(s.reward)}</td><td>{fmt(s.margin)}</td><td style={{color:s.net>=0?"var(--green)":"var(--red)",fontWeight:600}}>{s.net>=0?"+":""}{fmt(s.net)}</td></tr>)}</tbody></table></div>
+            <svg viewBox="0 0 100 100" style={{width:"100%",height:180}} preserveAspectRatio="none">
+              <polygon points={netFill} fill="var(--green)" opacity=".08"/>
+              <polyline points={marginLine} fill="none" stroke="var(--green)" strokeWidth=".5" strokeLinecap="round"/>
+              <polyline points={rewardLine} fill="none" stroke="var(--red)" strokeWidth=".5" strokeLinecap="round"/>
+              <polyline points={netLine} fill="none" stroke="var(--text)" strokeWidth=".6" strokeLinecap="round"/>
+              <line x1={cx(rr*100)} y1="5" x2={cx(rr*100)} y2="95" stroke="var(--text)" strokeWidth=".3" strokeDasharray="1,1"/>
+              <circle cx={cx(rr*100)} cy={cy(netPL)} r="1.5" fill="var(--text)"/>
+              <line x1="0" y1={cy(0)} x2="100" y2={cy(0)} stroke="var(--text3)" strokeWidth=".15" opacity=".5"/>
+            </svg>
+            <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--text3)",marginTop:4}}>
+              <span>0%</span><span>25%</span><span>50%</span>
             </div>
-            {netPL>=0&&<div className="wif-narrative"><b>Looking good.</b> At {(rr*100).toFixed(0)}% redemption across {ub.toLocaleString()} users, this offer generates {fmt(totalMargin)} in margin against {fmt(totalReward)} in rewards \u2014 a net positive of <b>{fmt(netPL)}</b>.{beRate>0&&beRate<100?" You break even at just "+beRate.toFixed(1)+"% redemption, giving you a healthy safety margin.":""}</div>}
-            {netPL<0&&<div className="wif-narrative" style={{background:"var(--red-bg)",color:"var(--red)"}}><b>Watch out.</b> At {(rr*100).toFixed(0)}% redemption, this offer loses <b>{fmt(Math.abs(netPL))}</b>. The reward cost ({fmt(totalReward)}) exceeds the margin ({fmt(totalMargin)}). Consider reducing the cashback rate or narrowing your audience.</div>}
-          </>}
-          {ub===0&&<div className="card" style={{textAlign:"center",padding:40,color:"var(--text3)"}}>Set an audience size to see projections</div>}
+          </div>
+          {/* Narrative */}
+          {netPL>=0&&<div className="wif-narrative"><b>Compared to your current setup:</b> at {inp.redemptionRate}% redemption across {parseInt(inp.userBase).toLocaleString()} users, this offer generates {fmt(totalMargin)} in margin against {fmt(totalReward)} in rewards — a net positive of <b>{fmt(netPL)}</b>.{beRate>0&&beRate<100?" Breakeven drops to "+beRate.toFixed(1)+"% — you're safe even in a soft launch.":""}</div>}
+          {netPL<0&&<div className="wif-narrative" style={{background:"var(--red-bg)",color:"var(--red)"}}><b>Watch out:</b> at {inp.redemptionRate}% redemption, this offer loses <b>{fmt(Math.abs(netPL))}</b>. The reward cost ({fmt(totalReward)}) exceeds the margin ({fmt(totalMargin)}). Consider reducing the rate or narrowing the audience.</div>}
+          {/* Per-user */}
+          <div className="card" style={{padding:16}}>
+            <div style={{fontSize:12,fontWeight:600,marginBottom:12}}>Per-user economics</div>
+            <div className="metrics">
+              <div className="mc"><div className="mc-label">Events</div><div className="mc-val">{cappedEvents}</div><div className="mc-sub">{isW?aTpm:aSess}/mo x {months.toFixed(1)}mo</div></div>
+              <div className="mc"><div className="mc-label">Reward/user</div><div className="mc-val" style={{color:"var(--red)"}}>{"₹"}{rewardPerUser.toFixed(0)}</div></div>
+              <div className="mc"><div className="mc-label">Revenue/user</div><div className="mc-val">{isW?"Lagging":"₹"+revenuePerUser.toFixed(0)}</div></div>
+              <div className="mc"><div className="mc-label">Net/user</div><div className="mc-val" style={{color:netPerUser>=0?"var(--green)":"var(--red)"}}>{netPerUser>=0?"+":""}{"₹"}{netPerUser.toFixed(0)}</div></div>
+            </div>
+          </div>
         </div>
       </div>
     </>}
+    {open&&ub===0&&<div className="card" style={{textAlign:"center",padding:40,color:"var(--text3)"}}>Set an audience size to see projections</div>}
   </div>;
 }
 
