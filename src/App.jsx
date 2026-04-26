@@ -622,15 +622,26 @@ function ScaleProjector({offer,simResult,simRoi,marginPct,onSave}){
     const aRate=parseFloat(inp.avgRatePerKwh)||22;const incr=(parseFloat(inp.incrementality)||70)/100;
     const sessPerUser=Math.round(aSess*months);const cappedSess=offer.sx?Math.min(sessPerUser,parseInt(offer.sx)):sessPerUser;
     const revenuePerSess=aKwh*aRate;const marginPerSess=revenuePerSess*mPct;
-    const cashbackPerSess=rewardPerQualTxn;const netMarginPerSess=marginPerSess-cashbackPerSess;
-    const marginErosion=marginPerSess>0?(cashbackPerSess/marginPerSess)*100:0;
+    const rewardPerSess=rewardPerQualTxn;const netMarginPerSess=marginPerSess-rewardPerSess;
+    const marginErosion=marginPerSess>0?(rewardPerSess/marginPerSess)*100:0;
     const totalSessions=redeemed*cappedSess;const totalRevenue=totalSessions*revenuePerSess;
-    const totalMargin=totalSessions*marginPerSess;const totalCashback=totalSessions*cashbackPerSess;
-    const netTotal=totalMargin-totalCashback;
-    const incrNet=totalMargin*incr-totalCashback;
-    const effRatePerKwh=aRate-(cashbackPerSess/aKwh);
+    const totalMargin=totalSessions*marginPerSess;const totalRewardCost=totalSessions*rewardPerSess;
+    const netTotal=totalMargin-totalRewardCost;
+    const incrNet=totalMargin*incr-totalRewardCost;
+    const effRatePerKwh=aRate-(rewardPerSess/aKwh);
+    // Reward-type labels
+    const rType=offer.reward;
+    const rLabel=rType==="Cashback"?"Cashback":rType==="Discount"?"Discount":rType==="ChargeXP"?"XP":"Reward";
+    const rPayoutLabel=rType==="Cashback"?"Cashback payout":rType==="Discount"?"Total discount given":rType==="ChargeXP"?"XP issued":"Reward cost";
+    const rNetLabel=rType==="Cashback"?"Net after cashback":rType==="Discount"?"Net after discount":rType==="ChargeXP"?"Net after XP cost":"Net after reward";
+    const rErosionLabel=rType==="Cashback"?"Margin erosion":rType==="Discount"?"Revenue reduction":"Cost ratio";
+    const rErosionDesc=rType==="Cashback"?"of margin goes to cashback":rType==="Discount"?"of revenue given as discount":"of margin allocated to reward";
+    const rPerSessLabel=rType==="Cashback"?"Cashback / session":rType==="Discount"?"Discount / session":rType==="ChargeXP"?"XP cost / session":"Reward / session";
+    const rChartLabel=rType==="Cashback"?"Margin vs Cashback":rType==="Discount"?"Revenue vs Discount":rType==="ChargeXP"?"Margin vs XP cost":"Margin vs Reward cost";
+    const rChartLegend=rType==="Cashback"?"Cashback":rType==="Discount"?"Discount":rType==="ChargeXP"?"XP cost":"Reward";
+    const rEffLabel=rType==="Discount"?"Effective rate after discount":"Effective rate after "+rLabel.toLowerCase();
     // Chart
-    const chartPts=[];for(let r=0;r<=50;r+=2){const rd=Math.round(ub*(r/100));const s=rd*cappedSess;chartPts.push({r,margin:s*marginPerSess,reward:s*cashbackPerSess,net:s*netMarginPerSess})}
+    const chartPts=[];for(let r=0;r<=50;r+=2){const rd=Math.round(ub*(r/100));const s=rd*cappedSess;chartPts.push({r,margin:s*marginPerSess,reward:s*rewardPerSess,net:s*netMarginPerSess})}
     const chartMax=Math.max(...chartPts.map(p=>Math.max(p.margin,p.reward,Math.abs(p.net))),1);
     const cx=(r)=>(r/50)*100;const cy=(v)=>100-((v/chartMax)*80+10);
     analysis={type:"charging",knobs:<>
@@ -642,34 +653,34 @@ function ScaleProjector({offer,simResult,simRoi,marginPct,onSave}){
       <Knob label="Incrementality" value={inp.incrementality||"70"} unit="%" min={0} max={100} step={5} baseline={70} baseLabel="est." onChange={v=>save({incrementality:v})}/>
       <Knob label="Margin assumption" value={inp.marginAssumption||String(marginPct)} unit="%" min={15} max={50} step={1} baseline={marginPct} baseLabel="finance set" onChange={v=>save({marginAssumption:v})}/>
     </>,headline:<div className="wif-headline">
-      <div className="wif-headline-block"><div className="wif-headline-label">Net after cashback</div><div className="wif-headline-val" style={{color:netTotal>=0?"var(--green)":"var(--red)"}}>{netTotal>=0?"+":""}{fmt(netTotal)}</div><div className="wif-headline-delta">{redeemed.toLocaleString()} users × {cappedSess} sessions</div></div>
-      <div className="wif-headline-block"><div className="wif-headline-label">Cashback payout</div><div className="wif-headline-val" style={{color:"var(--red)"}}>{fmt(totalCashback)}</div><div className="wif-headline-delta">{"₹"}{cashbackPerSess.toFixed(0)} per session avg</div></div>
-      <div className="wif-headline-block"><div className="wif-headline-label">Margin erosion</div><div className="wif-headline-val" style={{color:marginErosion>40?"var(--red)":marginErosion>25?"var(--amber)":"var(--green)"}}>{fmtP(marginErosion)}</div><div className="wif-headline-delta">of {fmtP(mPct*100)} margin goes to cashback</div></div>
+      <div className="wif-headline-block"><div className="wif-headline-label">{rNetLabel}</div><div className="wif-headline-val" style={{color:netTotal>=0?"var(--green)":"var(--red)"}}>{netTotal>=0?"+":""}{fmt(netTotal)}</div><div className="wif-headline-delta">{redeemed.toLocaleString()} users × {cappedSess} sessions</div></div>
+      <div className="wif-headline-block"><div className="wif-headline-label">{rPayoutLabel}</div><div className="wif-headline-val" style={{color:"var(--red)"}}>{fmt(totalRewardCost)}</div><div className="wif-headline-delta">{"₹"}{rewardPerSess.toFixed(0)} per session avg</div></div>
+      <div className="wif-headline-block"><div className="wif-headline-label">{rErosionLabel}</div><div className="wif-headline-val" style={{color:marginErosion>40?"var(--red)":marginErosion>25?"var(--amber)":"var(--green)"}}>{fmtP(marginErosion)}</div><div className="wif-headline-delta">{rErosionDesc}</div></div>
     </div>,
     detail:<>
       <div className="card" style={{padding:16}}><div style={{fontSize:12,fontWeight:600,marginBottom:12}}>Session-level economics</div><div className="metrics">
         <div className="mc"><div className="mc-label">Revenue / session</div><div className="mc-val">{"₹"}{revenuePerSess.toFixed(0)}</div><div className="mc-sub">{aKwh}kWh × {"₹"}{aRate}</div></div>
         <div className="mc"><div className="mc-label">Margin / session</div><div className="mc-val">{"₹"}{marginPerSess.toFixed(0)}</div><div className="mc-sub">{fmtP(mPct*100)} of revenue</div></div>
-        <div className="mc"><div className="mc-label">Cashback / session</div><div className="mc-val" style={{color:"var(--red)"}}>{"₹"}{cashbackPerSess.toFixed(0)}</div><div className="mc-sub">from simulation</div></div>
-        <div className="mc"><div className="mc-label">Net margin / session</div><div className="mc-val" style={{color:netMarginPerSess>=0?"var(--green)":"var(--red)"}}>{netMarginPerSess>=0?"+":""}{"₹"}{netMarginPerSess.toFixed(0)}</div><div className="mc-sub">margin - cashback</div></div>
+        <div className="mc"><div className="mc-label">{rPerSessLabel}</div><div className="mc-val" style={{color:"var(--red)"}}>{"₹"}{rewardPerSess.toFixed(0)}</div><div className="mc-sub">from simulation</div></div>
+        <div className="mc"><div className="mc-label">Net margin / session</div><div className="mc-val" style={{color:netMarginPerSess>=0?"var(--green)":"var(--red)"}}>{netMarginPerSess>=0?"+":""}{"₹"}{netMarginPerSess.toFixed(0)}</div><div className="mc-sub">margin - {rLabel.toLowerCase()}</div></div>
       </div></div>
       <div className="card" style={{padding:16}}><div style={{fontSize:12,fontWeight:600,marginBottom:12}}>Effective pricing after offer</div><div className="metrics">
         <div className="mc"><div className="mc-label">Rate before offer</div><div className="mc-val">{"₹"}{aRate}/kWh</div></div>
-        <div className="mc"><div className="mc-label">Effective rate after cashback</div><div className="mc-val" style={{color:effRatePerKwh<aRate*0.8?"var(--red)":"var(--text)"}}>{"₹"}{effRatePerKwh.toFixed(1)}/kWh</div><div className="mc-sub">what you actually earn</div></div>
+        <div className="mc"><div className="mc-label">{rEffLabel}</div><div className="mc-val" style={{color:effRatePerKwh<aRate*0.8?"var(--red)":"var(--text)"}}>{"₹"}{effRatePerKwh.toFixed(1)}/kWh</div><div className="mc-sub">what you actually earn</div></div>
       </div></div>
       <div className="card" style={{padding:16}}><div style={{fontSize:12,fontWeight:600,marginBottom:12}}>Incrementality test</div>
         <div style={{fontSize:13,color:"var(--text2)",lineHeight:1.7,marginBottom:12}}>If <b>{fmtP(incr*100)}</b> of sessions are incremental (wouldn't have happened without the offer), your true net impact is:</div>
         <div className="metrics">
           <div className="mc"><div className="mc-label">Incremental margin</div><div className="mc-val">{fmt(totalMargin*incr)}</div><div className="mc-sub">only counting new sessions</div></div>
-          <div className="mc"><div className="mc-label">Full cashback cost</div><div className="mc-val" style={{color:"var(--red)"}}>{fmt(totalCashback)}</div><div className="mc-sub">paid on ALL sessions</div></div>
+          <div className="mc"><div className="mc-label">Full {rLabel.toLowerCase()} cost</div><div className="mc-val" style={{color:"var(--red)"}}>{fmt(totalRewardCost)}</div><div className="mc-sub">paid on ALL sessions</div></div>
           <div className="mc"><div className="mc-label">True net impact</div><div className="mc-val" style={{color:incrNet>=0?"var(--green)":"var(--red)"}}>{incrNet>=0?"+":""}{fmt(incrNet)}</div><div className="mc-sub">{incr*100<100?"lower than headline":"fully incremental"}</div></div>
         </div>
-        {incrNet<0&&netTotal>=0&&<div className="risk-item warn" style={{marginTop:10}}>The headline looks profitable, but if only {fmtP(incr*100)} of sessions are incremental, you actually lose {fmt(Math.abs(incrNet))}. The rest are users who would have charged anyway — you're just giving them cashback for free.</div>}
+        {incrNet<0&&netTotal>=0&&<div className="risk-item warn" style={{marginTop:10}}>The headline looks profitable, but if only {fmtP(incr*100)} of sessions are incremental, you actually lose {fmt(Math.abs(incrNet))}. The rest are users who would have charged anyway — you're giving them {rLabel.toLowerCase()} for free.</div>}
       </div>
     </>,chart:<div className="card" style={{padding:18}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-        <div style={{fontSize:13,fontWeight:600}}>Margin vs Cashback across redemption rates</div>
-        <div style={{display:"flex",gap:14,fontSize:11,color:"var(--text3)"}}><span><span style={{display:"inline-block",width:8,height:8,borderRadius:2,background:"var(--green)",marginRight:4}}/>Margin</span><span><span style={{display:"inline-block",width:8,height:8,borderRadius:2,background:"var(--red)",marginRight:4}}/>Cashback</span><span><span style={{display:"inline-block",width:8,height:8,borderRadius:2,background:"var(--text)",marginRight:4}}/>Net</span></div>
+        <div style={{fontSize:13,fontWeight:600}}>{rChartLabel} across redemption rates</div>
+        <div style={{display:"flex",gap:14,fontSize:11,color:"var(--text3)"}}><span><span style={{display:"inline-block",width:8,height:8,borderRadius:2,background:"var(--green)",marginRight:4}}/>Margin</span><span><span style={{display:"inline-block",width:8,height:8,borderRadius:2,background:"var(--red)",marginRight:4}}/>{rChartLegend}</span><span><span style={{display:"inline-block",width:8,height:8,borderRadius:2,background:"var(--text)",marginRight:4}}/>Net</span></div>
       </div>
       <svg viewBox="0 0 100 100" style={{width:"100%",height:180}} preserveAspectRatio="none">
         <polygon points={"0,"+cy(0)+" "+chartPts.map(p=>cx(p.r)+","+cy(p.net)).join(" ")+" 100,"+cy(0)} fill="var(--green)" opacity=".06"/>
@@ -682,7 +693,7 @@ function ScaleProjector({offer,simResult,simRoi,marginPct,onSave}){
       </svg>
       <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--text3)",marginTop:4}}><span>0%</span><span>25%</span><span>50%</span></div>
     </div>,
-    narrative:netTotal>=0?<div className="wif-narrative"><b>Profitable at scale.</b> At {inp.redemptionRate}% redemption, {redeemed.toLocaleString()} users generate {fmt(totalMargin)} in margin. After {fmt(totalCashback)} cashback payout, you net <b>{fmt(netTotal)}</b>. Margin erosion is {fmtP(marginErosion)} — {marginErosion<20?"well within healthy range.":marginErosion<35?"moderate, monitor closely.":"high, consider reducing rates."} Effective per-kWh earning drops from {"₹"}{aRate} to {"₹"}{effRatePerKwh.toFixed(1)}.</div>:<div className="wif-narrative" style={{background:"var(--red-bg)",color:"var(--red)"}}><b>Unprofitable.</b> Cashback cost ({fmt(totalCashback)}) exceeds margin ({fmt(totalMargin)}). Effective kWh rate is {"₹"}{effRatePerKwh.toFixed(1)} — below sustainable levels. Reduce cashback rate or cap, or narrow the audience.</div>};
+    narrative:netTotal>=0?<div className="wif-narrative"><b>Profitable at scale.</b> At {inp.redemptionRate}% redemption, {redeemed.toLocaleString()} users generate {fmt(totalMargin)} in margin. After {fmt(totalRewardCost)} {rLabel.toLowerCase()} payout, you net <b>{fmt(netTotal)}</b>. {rErosionLabel} is {fmtP(marginErosion)} — {marginErosion<20?"well within healthy range.":marginErosion<35?"moderate, monitor closely.":"high, consider reducing rates."} Effective per-kWh earning drops from {"₹"}{aRate} to {"₹"}{effRatePerKwh.toFixed(1)}.</div>:<div className="wif-narrative" style={{background:"var(--red-bg)",color:"var(--red)"}}><b>Unprofitable.</b> {rLabel} cost ({fmt(totalRewardCost)}) exceeds margin ({fmt(totalMargin)}). Effective kWh rate is {"₹"}{effRatePerKwh.toFixed(1)} — below sustainable levels. Reduce {rLabel.toLowerCase()} rate or cap, or narrow the audience.</div>};
   }
 
   // ══════════ WALLET TOP-UP CASHBACK ══════════
@@ -800,7 +811,7 @@ function ScaleProjector({offer,simResult,simRoi,marginPct,onSave}){
     </div>
     {open&&ub>0&&<>
       <div style={{fontSize:13,color:"var(--text3)",marginBottom:16,maxWidth:600,lineHeight:1.6}}>
-        {isCharging&&"Adjust the levers to project how this cashback offer performs at scale. Each change updates all calculations live."}
+        {isCharging&&("Adjust the levers to project how this "+(offer.reward==="Discount"?"discount":offer.reward==="ChargeXP"?"XP":offer.reward==="Coupon"?"coupon":"cashback")+" offer performs at scale. Each change updates all calculations live.")}
         {isW&&!isP&&"Wallet cashback costs are leading — you pay now, revenue comes later from charging. Adjust conversion assumptions to test feasibility."}
         {isP&&"Pre-load is a direct investment per user. This analysis tests whether the charging sessions it induces justify the cost."}
       </div>
