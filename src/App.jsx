@@ -597,7 +597,7 @@ function ScheduleView({ allOffers, campaigns, onOpenOffer }) {
   }
   const todayPct = pct(today);
   return <div>
-    <div className="page-hdr"><h1>Schedule</h1><div style={{ fontSize: 13, color: "var(--text3)", marginTop: 4 }}>All offers across campaigns on a timeline</div></div>
+    <div className="pulse-h"><h1>Schedule</h1><div style={{ fontSize: 13, color: "var(--text3)", marginTop: 4 }}>All offers across campaigns on a timeline</div></div>
     <div className="sched-stats">
       <div className="sched-stat"><div className="sched-stat-label">Active</div><div className="sched-stat-val" style={{color:"var(--green)"}}>{activeCount}</div><div className="sched-stat-sub">running now</div></div>
       <div className="sched-stat"><div className="sched-stat-label">Scheduled</div><div className="sched-stat-val" style={{color:"var(--blue)"}}>{scheduledCount}</div><div className="sched-stat-sub">upcoming</div></div>
@@ -1073,47 +1073,47 @@ export default function App(){
   if(!user)return<><style>{css}</style><LoginPage onLogin={login}/></>;
 
   const STEPS=STEP_INFO;
-  return<><style>{css}</style><div className="app">
-    <aside className="sidebar">
-      <div className="sb-brand" onClick={()=>{setActiveCampaign(null);setView("campaigns")}}>
-        <div className="sb-brand-mark"><SvgIcon name="bolt"/></div><span>OfferOS</span>
+  return<><style>{css}</style><div className="pulse-shell">
+    <div className="pulse-side">
+      <div className="pulse-brand" onClick={()=>{setActiveCampaign(null);setView("campaigns")}}>
+        <div className="pulse-brand-mark accent"><SvgIcon name="bolt"/></div><span>OfferOS</span>
       </div>
-      <div className="sb-org">
-        <div className="sb-org-avatar">CZ</div><span className="name">ChargeZone</span><span className="caret">⌄</span>
+      <div className="pulse-org">
+        <div className="pulse-org-avatar">CZ</div><span className="pulse-org-name">ChargeZone</span><span className="pulse-org-caret">⌄</span>
       </div>
-      <div className="sb-section">Workspace</div>
-      <button className={"sb-item "+(view==="campaigns"&&!activeCampaign?"active":"")} onClick={()=>{setActiveCampaign(null);setView("campaigns")}}><span className="icon"><SvgIcon name="home"/></span><span>Overview</span></button>
-      <button className={"sb-item "+((view==="offers"||view==="editor")?"active":"")} onClick={()=>{if(activeCampaign)setView("offers");else setView("campaigns")}}><span className="icon"><SvgIcon name="layers"/></span><span>Campaigns</span></button>
-      <button className={"sb-item "+(view==="schedule"?"active":"")} onClick={()=>setView("schedule")}><span className="icon"><SvgIcon name="cal"/></span><span>Schedule</span></button>
-      <button className={"sb-item "+(aiOpen?"active":"")} onClick={()=>setAiOpen(!aiOpen)}><span className="icon"><SvgIcon name="spark"/></span><span>AI Assistant</span>{!getApiKey()&&<span className="badge">!</span>}</button>
-      <div className="sb-section">Account</div>
-      <button className="sb-item" onClick={()=>setKeyModal(true)}><span className="icon"><SvgIcon name="gear"/></span><span>Settings</span></button>
-      <div className="sb-foot">
-        <div className="sb-foot-avatar">{user.displayName?.[0]?.toUpperCase()||"U"}</div>
+      <div className="pulse-sec">Workspace</div>
+      <button className={"pulse-nav "+(view==="campaigns"&&!activeCampaign?"active":"")} onClick={()=>{setActiveCampaign(null);setView("campaigns")}}><span className="pulse-nav-glyph">◇</span>Overview</span></button>
+      <button className={"pulse-nav "+((view==="offers"||view==="editor")?"active":"")} onClick={()=>{if(activeCampaign)setView("offers");else setView("campaigns")}}><span className="pulse-nav-glyph">◐</span>Campaigns</span></button>
+      <button className={"pulse-nav "+(view==="schedule"?"active":"")} onClick={()=>setView("schedule")}><span className="pulse-nav-glyph">▦</span>Schedule</span></button>
+      <button className={"pulse-nav "+(aiOpen?"active":"")} onClick={()=>setAiOpen(!aiOpen)}><span className="pulse-nav-glyph">⊙</span>AI Assistant</span>{!getApiKey()&&<span className="pulse-nav-badge">!</span>}</button>
+      <div className="pulse-sec">Account</div>
+      <button className="pulse-nav" onClick={()=>setKeyModal(true)}><span className="pulse-nav-glyph">⚙</span>Settings</span></button>
+      <div className="pulse-foot">
+        <div className="pulse-foot-avatar">{user.displayName?.[0]?.toUpperCase()||"U"}</div>
         <div style={{flex:1,minWidth:0}}>
-          <div className="who">{user.displayName||"User"}</div>
-          <div className="role">{user.role||"editor"} · ChargeZone</div>
+          <div className="pulse-foot-who">{user.displayName||"User"}</div>
+          <div className="pulse-foot-role">{user.role||"editor"} · ChargeZone</div>
         </div>
         <div className="theme-toggle" onClick={toggleTheme} title={theme==="light"?"Dark mode":"Light mode"}><div className="thumb"/></div>
       </div>
-    </aside>
-    <div className="main-area">
-      <div className="topbar">
-        <div className="breadcrumb">
+    </div>
+    <div className="pulse-main">
+      <div className="pulse-top">
+        <div className="pulse-crumb">
           <span style={{cursor:"pointer"}} onClick={()=>{setActiveCampaign(null);setView("campaigns")}}>OfferOS</span>
           {activeCampaign&&<><span className="sep">/</span><span style={{cursor:"pointer"}} onClick={()=>setView("offers")}>{activeCampaign.name}</span></>}
           {offer&&view==="editor"&&<><span className="sep">/</span><span className="current">{offer.name}</span></>}
           {view==="schedule"&&<><span className="sep">/</span><span className="current">Schedule</span></>}
           {!activeCampaign&&view!=="schedule"&&<><span className="sep">/</span><span className="current">Campaigns</span></>}
         </div>
-        <div className="topbar-right">
+        <div className="pulse-top-r">
           {saveStatus&&<div className={"save-indicator "+saveStatus}>{saveStatus==="saving"?"Saving...":saveStatus==="saved"?"✓ Saved":saveStatus==="error"?"Save failed":""}</div>}
           <div className="user-badge" onClick={logout} title={"Sign out"}>
             <div className="user-badge-avatar">{user.displayName?.[0]?.toUpperCase()||"U"}</div>
           </div>
         </div>
       </div>
-      <div className="content">
+      <div className="pulse-content">
       {/* CAMPAIGNS LIST */}
       {view==="campaigns"&&<><HomeDashboard campaigns={campaigns} allOffers={allOffers} /><CampaignsList campaigns={campaigns} onSelect={c=>{setActiveCampaign(c);}} onNew={newCampaign} onArchive={archiveCampaign}/></>}
 
@@ -1121,8 +1121,8 @@ export default function App(){
       {view==="schedule"&&<ScheduleView allOffers={allOffers} campaigns={campaigns} onOpenOffer={(o)=>{const camp=campaigns.find(c=>c._id===o.campaignId);if(camp){setActiveCampaign(camp);api("/offers?campaignId="+camp._id).then(offs=>{setOffers(offs);setCid(o._id||o.id);setStep(0);setTxns(o.simTxns||defaultTxns(o.activity));setLastSim(o.simResult||null);setView("editor")}).catch(()=>{})}}}/>}
 
       {/* OFFERS VIEW */}
-      {view==="offers"&&activeCampaign&&<><div className="page-hdr">
-        <div className="page-hdr-sub" onClick={()=>{setActiveCampaign(null);setView("campaigns")}}>← All Campaigns</div>
+      {view==="offers"&&activeCampaign&&<><div className="pulse-h">
+        <div className="pulse-h-sub" onClick={()=>{setActiveCampaign(null);setView("campaigns")}}>← All Campaigns</div>
         <input style={{fontFamily:"var(--font-display)",fontSize:28,fontWeight:400,border:"none",background:"none",width:"100%",padding:0,color:"var(--text)"}} value={activeCampaign.name} onChange={e=>{setActiveCampaign(p=>({...p,name:e.target.value}));updateCampaignName(e.target.value)}} placeholder="Campaign name"/>
       </div>
       <div style={{display:"flex",gap:14,marginBottom:20,alignItems:"center"}}><div className="field" style={{maxWidth:180}}><div className="field-label">Charging margin %</div><input type="number" value={marginPct} min="1" max="100" onChange={e=>updateMargin(parseInt(e.target.value)||30)} style={{padding:"7px 10px"}}/></div><div style={{fontSize:11,color:"var(--text3)",lineHeight:1.5,maxWidth:400}}>Margin on charging net revenue (pre-GST). Wallet top-ups don't generate margin.</div></div>
@@ -1144,8 +1144,8 @@ export default function App(){
       </>}
 
       {/* EDITOR VIEW */}
-      {view==="editor"&&offer&&<><div className="page-hdr">
-        <div className="page-hdr-sub" onClick={()=>setView("offers")}>← {activeCampaign?.name||"Offers"}</div>
+      {view==="editor"&&offer&&<><div className="pulse-h">
+        <div className="pulse-h-sub" onClick={()=>setView("offers")}>← {activeCampaign?.name||"Offers"}</div>
         <input style={{fontFamily:"var(--font-display)",fontSize:28,fontWeight:400,border:"none",borderBottom:"2px solid var(--border)",background:"none",width:"100%",padding:"0 0 4px",color:"var(--text)"}} value={offer.name} onChange={e=>upd({name:e.target.value})} placeholder="Offer name"/>
         <div style={{display:"flex",alignItems:"center",gap:10,marginTop:8}}>
           <span style={{fontSize:11,color:"var(--text3)",fontWeight:500}}>Status:</span>
