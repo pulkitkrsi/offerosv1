@@ -1036,12 +1036,10 @@ export default function App(){
 
       {/* OFFERS VIEW */}
       {view==="offers"&&activeCampaign&&<><div className="pulse-h">
-        <div className="pulse-h-sub" onClick={()=>{setActiveCampaign(null);setView("campaigns")}}>← All Campaigns</div>
+        <div className="page-hdr-sub" onClick={()=>{setActiveCampaign(null);setView("campaigns")}}>← All Campaigns</div>
         <input style={{fontFamily:"var(--font-display)",fontSize:28,fontWeight:400,border:"none",background:"none",width:"100%",padding:0,color:"var(--text)"}} value={activeCampaign.name} onChange={e=>{setActiveCampaign(p=>({...p,name:e.target.value}));updateCampaignName(e.target.value)}} placeholder="Campaign name"/>
       </div>
       <div style={{display:"flex",gap:14,marginBottom:20,alignItems:"center"}}><div className="field" style={{maxWidth:180}}><div className="field-label">Charging margin %</div><input type="number" value={marginPct} min="1" max="100" onChange={e=>updateMargin(parseInt(e.target.value)||30)} style={{padding:"7px 10px"}}/></div><div style={{fontSize:11,color:"var(--text3)",lineHeight:1.5,maxWidth:400}}>Margin on charging net revenue (pre-GST). Wallet top-ups don't generate margin.</div></div>
-      {/* Business Impact Projector */}
-      <BusinessProjector offers={offers} marginPct={marginPct} projInputs={activeCampaign.projectionInputs} onSave={(inp)=>{setActiveCampaign(p=>({...p,projectionInputs:inp}));api("/campaigns?id="+activeCampaign._id,{method:"PUT",body:{projectionInputs:inp}}).catch(()=>{})}} />
       {/* Campaign Dashboard — Decision Board */}
       {offers.length>0&&<div style={{marginBottom:24}}>
         {(()=>{const totalCost=offers.reduce((s,o)=>s+(o.simResult?.totalReward||0),0);const simCount=offers.filter(o=>o.simResult).length;const allSegs=[...new Set(offers.flatMap(o=>o.segments||[]))];const segText=allSegs.includes("All")?"All segments":allSegs.filter(s=>s!=="All").join(", ")||"None";const conflictCount=Math.round(Object.keys(conflicts).length/2);const hasNeg=offers.some(o=>o.simRoi&&o.simRoi.netImpact<0);const verdict=conflictCount>0?"Conflicts detected":hasNeg?"Some offers losing money":simCount===0?"Not yet tested":totalCost>0?"Viable":"Ready";const orbClass=conflictCount>0||hasNeg?"caution":simCount===0?"caution":"healthy";return<div className="db-summary">
@@ -1059,7 +1057,7 @@ export default function App(){
 
       {/* EDITOR VIEW */}
       {view==="editor"&&offer&&<><div className="pulse-h">
-        <div className="pulse-h-sub" onClick={()=>setView("offers")}>← {activeCampaign?.name||"Offers"}</div>
+        <div className="page-hdr-sub" onClick={()=>setView("offers")}>← {activeCampaign?.name||"Offers"}</div>
         <input style={{fontFamily:"var(--font-display)",fontSize:28,fontWeight:400,border:"none",borderBottom:"2px solid var(--border)",background:"none",width:"100%",padding:"0 0 4px",color:"var(--text)"}} value={offer.name} onChange={e=>upd({name:e.target.value})} placeholder="Offer name"/>
         <div style={{display:"flex",alignItems:"center",gap:10,marginTop:8}}>
           <span style={{fontSize:11,color:"var(--text3)",fontWeight:500}}>Status:</span>
