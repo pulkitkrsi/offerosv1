@@ -407,169 +407,76 @@ function LoginPage({ onLogin }) {
 
 /* ── Home Dashboard ── */
 function HomeDashboard({ campaigns, allOffers }) {
-  const totalCampaigns = campaigns.length;
+  const SEGMENTS_ALL = ["New","Dormant","Engaged","Existing"];
   const rewardTypes = {}; const segCoverage = {}; let totalProjectedCost = 0; let simmedOffers = 0; let unsimmed = 0; let hasAll = false;
   allOffers.forEach(o => { const tp = o.wpre ? "Pre-load" : (o.reward || "Cashback"); rewardTypes[tp] = (rewardTypes[tp] || 0) + 1; (o.segments || []).forEach(s => { if(s==="All")hasAll=true; segCoverage[s] = (segCoverage[s] || 0) + 1; }); if (o.simResult) { totalProjectedCost += o.simResult.totalReward || 0; simmedOffers++; } else { unsimmed++; } });
-  const uncovered = hasAll ? [] : Object.keys(SEGMENTS).filter(s => s !== "All" && !segCoverage[s]);
-  const coveredCount = hasAll ? Object.keys(SEGMENTS).length - 1 : Object.keys(segCoverage).filter(s => s !== "All").length;
-  const totalOffers = allOffers.length;
-  const conflictCount = Object.keys(detectConflicts(allOffers)).length / 2;
-  return <div style={{ marginBottom: 28 }}>
-    <div style={{fontSize:10,fontWeight:600,letterSpacing:".08em",textTransform:"uppercase",color:"var(--text3)",marginBottom:12}}>Platform Overview</div>
-    <div className="metrics" style={{ marginBottom: 16 }}>
-      <div className="mc"><div className="mc-label">Active campaigns</div><div className="mc-val">{totalCampaigns}</div></div>
-      <div className="mc"><div className="mc-label">Total offers</div><div className="mc-val">{totalOffers}</div><div className="mc-sub">{simmedOffers} simulated, {unsimmed} pending</div></div>
-      <div className="mc"><div className="mc-label">Projected reward cost</div><div className="mc-val" style={{color:totalProjectedCost>0?"var(--red)":"var(--text3)"}}>₹{totalProjectedCost.toFixed(0)}</div><div className="mc-sub">across {simmedOffers} simulated offers</div></div>
-      <div className="mc"><div className="mc-label">Segments covered</div><div className="mc-val">{coveredCount}/{Object.keys(SEGMENTS).length - 1}</div><div className="mc-sub">{uncovered.length > 0 ? "Missing: " + uncovered.join(", ") : "All covered"}</div></div>
-    </div>
-    {(conflictCount > 0 || unsimmed > 0 || uncovered.length > 0) && <div style={{marginBottom:16}}>
-      <div style={{fontSize:10,fontWeight:600,letterSpacing:".08em",textTransform:"uppercase",color:"var(--text3)",marginBottom:8}}>Needs attention</div>
-      {conflictCount > 0 && <div className="risk-item risk" style={{marginBottom:4}}>{Math.round(conflictCount)} offer{conflictCount>1?"s":""} with segment + reward overlap</div>}
-      {unsimmed > 0 && <div className="risk-item warn" style={{marginBottom:4}}>{unsimmed} offer{unsimmed>1?"s":""} not yet tested with simulation</div>}
-      {uncovered.length > 0 && <div className="risk-item warn" style={{marginBottom:4}}>Segments without any offer: {uncovered.join(", ")}</div>}
-    </div>}
-    {Object.keys(rewardTypes).length > 0 && <div style={{marginBottom:16}}>
-      <div style={{fontSize:10,fontWeight:600,letterSpacing:".08em",textTransform:"uppercase",color:"var(--text3)",marginBottom:8}}>Reward distribution</div>
-      <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>{Object.entries(rewardTypes).map(([k,v])=><div key={k} style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",background:"var(--bg)",border:"1px solid var(--border)",borderRadius:"var(--r)"}}><div style={{width:8,height:8,borderRadius:"50%",background:DOT_COLORS[k]||"var(--text3)"}}/><span style={{fontSize:12}}>{k}: {v}</span></div>)}</div>
-    </div>}
-  </div>;
-}
+  const coveredCount = hasAll ? SEGMENTS_ALL.length : Object.keys(segCoverage).filter(s => s !== "All").length;
+  const uncovered = hasAll ? [] : SEGMENTS_ALL.filter(s => !segCoverage[s]);
+  const liveOffers = allOffers.filter(o=>getOfferStatus(o)==="live");
+  const conflicts = detectConflicts(allOffers);
+  const conflictCount = Math.round(Object.keys(conflicts).length / 2);
+  const needsAttention = [];
+  allOffers.forEach(o=>{if(o.simResult&&o.simRoi){if(o.simRoi.netImpact<0)needsAttention.push({type:"bad",title:o.name,reason:"Net loss of ₹"+Math.abs(o.simRoi.netImpact).toFixed(0)+" per simulation",action:"Review rates"});if(o.simRoi.risks)o.simRoi.risks.filter(r=>r.type==="risk").forEach(r=>needsAttention.push({type:"bad",title:o.name,reason:r.msg,action:"Fix now"}))}if(!o.simResult&&o.offerStatus!=="draft")needsAttention.push({type:"warn",title:o.name,reason:"Not simulated yet — costs unknown",action:"Run simulation"})});
 
-/* ── Campaigns List ── */
-/* ── Business Impact Projector ── */
-function BusinessProjector({ offers, marginPct, projInputs, onSave }) {
-  const defaults = { segmentSizes: { New: "5000", Dormant: "2000", Engaged: "8000", Existing: "15000" }, redemptionRate: "15", avgMonthlyEvents: "3", avgKwh: "12", avgTopup: "300", ratePerKwh: "22", cpa: "5", campaignPeriodDays: "30" };
-  const [inp, setInp] = useState({ ...defaults, ...projInputs });
-  const [open, setOpen] = useState(!!projInputs?.redemptionRate);
-  const save = (v) => { const n = { ...inp, ...v }; setInp(n); onSave(n); };
-  const saveSeg = (seg, val) => { const s = { ...inp.segmentSizes, [seg]: val }; save({ segmentSizes: s }); };
+  return <div>
+    <div className="pulse-h"><div>
+      <div className="eyebrow">ChargeZone · India</div>
+      <h1>Good morning.</h1>
+      <div className="lede">{campaigns.length} campaign{campaigns.length!==1?"s":""} active. <b style={{color:"var(--ink)"}}>{allOffers.length} offers</b> configured{simmedOffers>0?" — "+simmedOffers+" simulated":""}.</div>
+    </div></div>
 
-  const rr = (parseFloat(inp.redemptionRate) || 0) / 100;
-  const avgEvents = parseFloat(inp.avgMonthlyEvents) || 3;
-  const avgKwh = parseFloat(inp.avgKwh) || 12;
-  const avgTopup = parseFloat(inp.avgTopup) || 300;
-  const rpk = parseFloat(inp.ratePerKwh) || 22;
-  const cpa = parseFloat(inp.cpa) || 0;
-  const periodDays = parseFloat(inp.campaignPeriodDays) || 30;
-  const periodMonths = periodDays / 30;
-
-  // Per-offer feasibility calculation
-  const offerRows = offers.map(o => {
-    const isW = o.activity === "Wallet top-up", isP = !!o.wpre;
-    // Calculate target users for this offer based on segments
-    let targetUsers = 0;
-    (o.segments || []).forEach(s => {
-      if (s === "All") { targetUsers = Object.values(inp.segmentSizes).reduce((sum, v) => sum + (parseFloat(v) || 0), 0); }
-      else { targetUsers += parseFloat(inp.segmentSizes[s]) || 0; }
-    });
-    const redeemed = Math.round(targetUsers * rr);
-    const sessionsPerUser = Math.round(avgEvents * periodMonths);
-
-    // Reward cost per user from simulation
-    let rewardPerUser = 0;
-    if (o.simResult && o.simResult.qualTxns > 0) {
-      const simRewardPerSession = o.simResult.totalReward / o.simResult.qualTxns;
-      rewardPerUser = simRewardPerSession * Math.min(sessionsPerUser, parseInt(o.sx) || sessionsPerUser);
-    }
-    if (isP) rewardPerUser = parseFloat(o.w) || 0;
-
-    const totalRewardCost = redeemed * rewardPerUser;
-    const revenuePerUser = isW ? 0 : sessionsPerUser * avgKwh * rpk;
-    const totalRevenue = redeemed * revenuePerUser;
-    const marginEarned = totalRevenue * (marginPct / 100);
-    const acqCost = targetUsers * cpa;
-    const netImpact = marginEarned - totalRewardCost - acqCost;
-
-    return { offer: o, targetUsers, redeemed, rewardPerUser, totalRewardCost, totalRevenue, marginEarned, acqCost, netImpact, isW, isP, sessionsPerUser };
-  });
-
-  // Totals
-  const totTarget = offerRows.reduce((s, r) => s + r.targetUsers, 0);
-  const totRedeemed = offerRows.reduce((s, r) => s + r.redeemed, 0);
-  const totRewardCost = offerRows.reduce((s, r) => s + r.totalRewardCost, 0);
-  const totRevenue = offerRows.reduce((s, r) => s + r.totalRevenue, 0);
-  const totMargin = offerRows.reduce((s, r) => s + r.marginEarned, 0);
-  const totAcqCost = offerRows.reduce((s, r) => s + r.acqCost, 0);
-  const totNet = totMargin - totRewardCost - totAcqCost;
-  const hasData = offers.length > 0;
-
-  return <div style={{ marginBottom: 24 }}>
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer", padding: "12px 0" }} onClick={() => setOpen(!open)}>
-      <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--accent)" }}>Business Impact Projection</div>
-      <span style={{ color: "var(--text3)", fontSize: 14 }}>{open ? "▾" : "▸"}</span>
-    </div>
-    {open && <div className="card">
-      <div className="card-title" style={{ fontSize: 18 }}>Campaign Feasibility</div>
-      <div style={{ fontSize: 12, color: "var(--text3)", marginBottom: 20 }}>Enter your business assumptions — the tool will project combined impact of all {offers.length} offer{offers.length !== 1 ? "s" : ""} running during this period.</div>
-
-      <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--text3)", marginBottom: 10 }}>Segment sizes (total users in each)</div>
-      <div className="grid2" style={{ marginBottom: 18 }}>
-        {Object.entries(SEGMENTS).filter(([k]) => k !== "All").map(([k, v]) =>
-          <div key={k} className="field"><div className="field-label">{v.label}</div><input type="number" value={inp.segmentSizes?.[k] || ""} placeholder="0" onChange={e => saveSeg(k, e.target.value)} /></div>
-        )}
-      </div>
-
-      <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--text3)", marginBottom: 10 }}>Business parameters</div>
-      <div className="grid2" style={{ marginBottom: 14 }}>
-        <div className="field"><div className="field-label">Campaign period (days)</div><input type="number" value={inp.campaignPeriodDays} placeholder="30" onChange={e => save({ campaignPeriodDays: e.target.value })} /></div>
-        <div className="field"><div className="field-label">Expected redemption rate (%)</div><input type="number" value={inp.redemptionRate} placeholder="15" onChange={e => save({ redemptionRate: e.target.value })} /></div>
-      </div>
-      <div className="grid2" style={{ marginBottom: 14 }}>
-        <div className="field"><div className="field-label">Avg charging events per user/month</div><input type="number" value={inp.avgMonthlyEvents} placeholder="3" onChange={e => save({ avgMonthlyEvents: e.target.value })} /></div>
-        <div className="field"><div className="field-label">Avg kWh per session</div><input type="number" value={inp.avgKwh} placeholder="12" onChange={e => save({ avgKwh: e.target.value })} /></div>
-      </div>
-      <div className="grid2" style={{ marginBottom: 14 }}>
-        <div className="field"><div className="field-label">Rate per kWh (₹)</div><input type="number" value={inp.ratePerKwh} placeholder="22" onChange={e => save({ ratePerKwh: e.target.value })} /></div>
-        <div className="field"><div className="field-label">Cost per acquisition (₹/user)</div><input type="number" value={inp.cpa} placeholder="5" onChange={e => save({ cpa: e.target.value })} /></div>
-      </div>
-      <div className="field" style={{ marginBottom: 18 }}>
-        <div className="field-label">Avg wallet top-up amount (₹)</div>
-        <input type="number" value={inp.avgTopup} placeholder="300" onChange={e => save({ avgTopup: e.target.value })} style={{ maxWidth: 200 }} />
-      </div>
-
-      {hasData && <>
-        <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--text3)", margin: "24px 0 12px" }}>Combined campaign impact ({periodDays} days)</div>
-        <div className="metrics" style={{ marginBottom: 18 }}>
-          <div className="mc"><div className="mc-label">Total target users</div><div className="mc-val">{totTarget.toLocaleString()}</div><div className="mc-sub">across all offers (may overlap)</div></div>
-          <div className="mc"><div className="mc-label">Expected redemptions</div><div className="mc-val">{totRedeemed.toLocaleString()}</div><div className="mc-sub">{(rr * 100).toFixed(0)}% redemption rate</div></div>
-          <div className="mc"><div className="mc-label">Total reward liability</div><div className="mc-val" style={{ color: "var(--red)" }}>₹{totRewardCost.toLocaleString()}</div><div className="mc-sub">combined cost of all offers</div></div>
-          <div className="mc"><div className="mc-label">Net P&L</div><div className="mc-val" style={{ color: totNet >= 0 ? "var(--green)" : "var(--red)" }}>{totNet >= 0 ? "+" : ""}₹{totNet.toLocaleString()}</div><div className="mc-sub">margin - rewards - acquisition</div></div>
+    <div style={{display:"grid",gridTemplateColumns:"minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr) minmax(0,1fr)",gap:14,marginBottom:16}}>
+      <div className="pcard" style={{padding:"22px 26px"}}>
+        <div className="spread" style={{marginBottom:14}}>
+          <div className="pmetric-label">Active campaigns</div>
+          <span className="pchip ok">{campaigns.length} running</span>
         </div>
+        <div className="pmetric-val">{campaigns.length}</div>
+        <div className="muted" style={{fontSize:11,marginTop:6}}>{allOffers.length} offers across all campaigns</div>
+      </div>
+      <div className="pcard">
+        <div className="pmetric-label">Total offers</div>
+        <div className="pmetric-val">{allOffers.length}</div>
+        <div className="muted" style={{fontSize:11,marginTop:6}}>{simmedOffers} simulated, {unsimmed} pending</div>
+      </div>
+      <div className="pcard">
+        <div className="pmetric-label">Projected reward cost</div>
+        <div className="pmetric-val" style={{color:totalProjectedCost>0?"var(--bad)":"var(--ink3)"}}>₹{totalProjectedCost.toLocaleString()}</div>
+        <div className="muted" style={{fontSize:11,marginTop:6}}>across {simmedOffers} simulated offers</div>
+      </div>
+      <div className="pcard">
+        <div className="pmetric-label">Segments covered</div>
+        <div className="pmetric-val">{coveredCount}/{SEGMENTS_ALL.length}</div>
+        <div className="muted" style={{fontSize:11,marginTop:6}}>{uncovered.length>0?"Missing: "+uncovered.join(", "):"All covered"}</div>
+      </div>
+    </div>
 
-        {/* Per-offer breakdown */}
-        <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--text3)", marginBottom: 10 }}>Per-offer breakdown</div>
-        <div className="scroll-x"><table className="result-tbl" style={{ minWidth: 700 }}>
-          <thead><tr><th>Offer</th><th>Segment</th><th>Target users</th><th>Redeemed</th><th>Reward/user</th><th>Total reward</th><th>Revenue</th><th>Margin</th><th>Net impact</th></tr></thead>
-          <tbody>{offerRows.map((r, i) => <tr key={i}>
-            <td style={{ fontWeight: 600 }}>{r.offer.name}</td>
-            <td>{(r.offer.segments || []).join(", ") || "—"}</td>
-            <td>{r.targetUsers.toLocaleString()}</td>
-            <td>{r.redeemed.toLocaleString()}</td>
-            <td style={{ fontFamily: "var(--font-mono)" }}>₹{r.rewardPerUser.toFixed(0)}{r.isP ? " (pre-load)" : ""}</td>
-            <td style={{ color: "var(--red)" }}>₹{r.totalRewardCost.toLocaleString()}</td>
-            <td>{r.isW ? "Lagging" : "₹" + r.totalRevenue.toLocaleString()}</td>
-            <td>{r.isW ? "—" : "₹" + r.marginEarned.toLocaleString()}</td>
-            <td style={{ color: r.netImpact >= 0 ? "var(--green)" : "var(--red)", fontWeight: 600 }}>{r.netImpact >= 0 ? "+" : ""}₹{r.netImpact.toLocaleString()}</td>
-          </tr>)}</tbody>
-          <tfoot><tr style={{ fontWeight: 600, borderTop: "2px solid var(--border2)" }}>
-            <td>Total</td><td></td><td>{totTarget.toLocaleString()}</td><td>{totRedeemed.toLocaleString()}</td><td></td>
-            <td style={{ color: "var(--red)" }}>₹{totRewardCost.toLocaleString()}</td>
-            <td>₹{totRevenue.toLocaleString()}</td>
-            <td>₹{totMargin.toLocaleString()}</td>
-            <td style={{ color: totNet >= 0 ? "var(--green)" : "var(--red)" }}>{totNet >= 0 ? "+" : ""}₹{totNet.toLocaleString()}</td>
-          </tr></tfoot>
-        </table></div>
+    {needsAttention.length>0&&<div className="pcard" style={{marginBottom:24,padding:"18px 24px"}}>
+      <div className="spread" style={{marginBottom:12}}>
+        <div className="row" style={{gap:10}}>
+          <span style={{fontFamily:"var(--display)",fontSize:18}}>Needs your attention</span>
+          <span className="pchip warn">{needsAttention.length}</span>
+        </div>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:needsAttention.length>1?"1fr 1fr":"1fr",gap:14}}>
+        {needsAttention.slice(0,4).map((a,i)=><div key={i} className="row" style={{padding:"14px 16px",background:"var(--bg)",borderRadius:"var(--r2)",border:"1px solid var(--line)",gap:14}}>
+          <div style={{width:6,height:36,background:a.type==="bad"?"var(--bad)":"var(--warn)",borderRadius:3,flexShrink:0}}/>
+          <div style={{flex:1,minWidth:0}}>
+            <div className="b" style={{fontSize:13,marginBottom:2}}>{a.title}</div>
+            <div className="muted" style={{fontSize:12}}>{a.reason}</div>
+          </div>
+          <button className="pbtn sm">{a.action}</button>
+        </div>)}
+      </div>
+    </div>}
 
-        {/* Warnings */}
-        {offerRows.some(r => !r.offer.simResult) && <div className="risk-item warn" style={{ marginTop: 14 }}>Some offers haven't been simulated yet — their reward/user is estimated at ₹0. Run simulations for accurate projections.</div>}
-        {totNet < 0 && <div className="risk-item risk" style={{ marginTop: 8 }}>Campaign is projected to lose ₹{Math.abs(totNet).toLocaleString()}. Consider reducing reward rates, narrowing segments, or increasing margin.</div>}
-        {offerRows.filter(r => r.targetUsers > 0).length > 1 && <div className="risk-item warn" style={{ marginTop: 8 }}>Target users may overlap across offers if they share segments. Actual reach may be lower than the sum.</div>}
-      </>}
+    {Object.keys(rewardTypes).length>0&&<div style={{marginBottom:24}}>
+      <div className="pmetric-label" style={{marginBottom:10}}>Reward distribution</div>
+      <div className="row" style={{gap:8,flexWrap:"wrap"}}>{Object.entries(rewardTypes).map(([tp,ct])=><span key={tp} className="pchip" style={{background:"var(--bg3)",color:"var(--ink2)",fontSize:11}}><span className="pchip-dot" style={{background:DOT_COLORS[tp]||"var(--ink3)"}}/>{tp}: {ct}</span>)}</div>
     </div>}
   </div>;
 }
 
-/* ── Schedule / Gantt Chart View ── */
 function ScheduleView({ allOffers, campaigns, onOpenOffer }) {
   const [scale, setScale] = useState("month");
   const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -636,41 +543,48 @@ function ScheduleView({ allOffers, campaigns, onOpenOffer }) {
 }
 
 function CampaignsList({ campaigns, onSelect, onNew, onArchive }) {
-  const [delId, setDelId] = useState(null);
-  const delName = delId ? (campaigns.find(c => c._id === delId)?.name || "") : "";
+  const [delId,setDelId]=useState(null);const delName=campaigns.find(c=>c._id===delId)?.name||"";
   return <div>
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-      <div><div style={{ fontSize: 10, fontWeight: 600, letterSpacing: ".08em", textTransform: "uppercase", color: "var(--text3)", marginBottom: 4 }}>Workspace</div><h1 style={{ fontSize: 28, fontWeight: 600, letterSpacing: "-0.025em" }}>Campaigns</h1></div>
-      <button className="btn btn-primary" onClick={onNew}>+ New Campaign</button>
+    <div className="pulse-h" style={{padding:"8px 0 18px"}}>
+      <div>
+        <div className="eyebrow">Portfolio</div>
+        <h1 style={{fontSize:30}}>Campaigns</h1>
+      </div>
+      <div className="row" style={{gap:8}}>
+        <button className="pbtn accent sm" onClick={onNew}>+ New Campaign</button>
+      </div>
     </div>
     <div className="campaign-list">
-      {campaigns.map(c => <div key={c._id} className="campaign-card" onClick={() => onSelect(c)}>
-        <div className="offer-card-actions" style={{opacity:1}} onClick={e => e.stopPropagation()}>
-          <button className="del" onClick={() => setDelId(c._id)} title="Archive campaign">×</button>
-        </div>
-        <div className={"campaign-card-status sbadge " + (c.status === "active" ? "bg-green" : c.status === "completed" ? "bg-blue" : "bg-muted")}>{c.status || "draft"}</div>
-        <div className="campaign-card-name">{c.name}</div>
-        <div className="campaign-card-meta">
-          <span>{c.offerCount || 0} offers</span>
-          <span>Margin {c.marginPct || 30}%</span>
-          {c.updatedAt && <span>Updated {new Date(c.updatedAt).toLocaleDateString()}</span>}
-        </div>
-      </div>)}
-      {campaigns.length === 0 && <div className="empty-workspace">
-        <div className="empty-icon">⚡</div>
-        <div className="empty-title">Welcome to your workspace</div>
-        <div className="empty-desc">This is where your campaigns live. Create your first campaign to start building offers, running simulations, and shipping specs to your tech team.</div>
-        <div className="empty-actions"><button className="btn btn-primary" onClick={()=>onNew()}>Create your first campaign</button></div>
-        <div className="quickstart">
-          <div className="quickstart-card" onClick={()=>onNew()}><div className="quickstart-icon">🎯</div><div className="quickstart-title">Acquisition</div><div className="quickstart-desc">Bring new users to their first charge with cashback or coupons</div></div>
-          <div className="quickstart-card" onClick={()=>onNew()}><div className="quickstart-icon">🔄</div><div className="quickstart-title">Re-engagement</div><div className="quickstart-desc">Win back dormant users with compelling comeback offers</div></div>
-          <div className="quickstart-card" onClick={()=>onNew()}><div className="quickstart-icon">📈</div><div className="quickstart-title">Growth</div><div className="quickstart-desc">Increase wallet adoption and charging frequency</div></div>
-        </div>
-      </div>}
+      {campaigns.map(c => {
+        const st = c.status || "draft";
+        return <div key={c._id} className="pcard" style={{cursor:"pointer",position:"relative"}} onClick={()=>onSelect(c)}
+          onMouseEnter={e=>e.currentTarget.style.boxShadow="0 12px 32px -16px rgba(15,31,26,.20)"}
+          onMouseLeave={e=>e.currentTarget.style.boxShadow=""}>
+          <button style={{position:"absolute",top:12,right:12,width:28,height:28,borderRadius:8,border:"1px solid var(--line)",background:"var(--paper)",fontSize:14,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:"var(--ink3)"}} onClick={e=>{e.stopPropagation();setDelId(c._id)}}>×</button>
+          <div className="spread" style={{marginBottom:12}}>
+            <span className={"pchip "+(st==="live"?"live":"draft")}><span className="pchip-dot" style={{background:st==="live"?"var(--ok)":"var(--ink3)"}}/>{st==="live"?"Live":"Draft"}</span>
+            <span className="muted" style={{fontSize:11}}>Margin {c.marginPct||30}%</span>
+          </div>
+          <div className="serif" style={{fontSize:26,letterSpacing:"-.01em",marginBottom:6}}>{c.name}</div>
+          <div className="muted" style={{fontSize:12}}>{c.offerCount||0} offers &nbsp;·&nbsp; Margin {c.marginPct||30}% &nbsp;·&nbsp; Updated {c.updatedAt?new Date(c.updatedAt).toLocaleDateString("en-IN",{day:"2-digit",month:"2-digit",year:"numeric"}):""}</div>
+        </div>;
+      })}
     </div>
-    {delId && <ConfirmModal title="Archive campaign?" msg={'"' + delName + '" and all its offers will be archived. You can recover it from MongoDB if needed.'} onConfirm={() => { onArchive(delId); setDelId(null); }} onCancel={() => setDelId(null)} />}
+    {campaigns.length===0&&<div className="empty-workspace">
+      <div className="empty-icon">⚡</div>
+      <div className="empty-title">Welcome to your workspace</div>
+      <div className="empty-desc">This is where your campaigns live. Create your first campaign to start building offers.</div>
+      <div className="empty-actions"><button className="pbtn accent" onClick={onNew}>Create your first campaign</button></div>
+      <div className="quickstart">
+        <div className="quickstart-card" onClick={onNew}><div className="quickstart-icon">🎯</div><div className="quickstart-title">Acquisition</div><div className="quickstart-desc">Bring new users to their first session</div></div>
+        <div className="quickstart-card" onClick={onNew}><div className="quickstart-icon">🔄</div><div className="quickstart-title">Re-engagement</div><div className="quickstart-desc">Win back dormant users</div></div>
+        <div className="quickstart-card" onClick={onNew}><div className="quickstart-icon">📈</div><div className="quickstart-title">Growth</div><div className="quickstart-desc">Increase frequency and wallet adoption</div></div>
+      </div>
+    </div>}
+    {delId&&<ConfirmModal title="Archive campaign?" msg={'"'+delName+'" will be archived.'} onConfirm={()=>{onArchive(delId);setDelId(null)}} onCancel={()=>setDelId(null)}/>}
   </div>;
 }
+
 
 function APIKeyModal({onClose}){const[key,setKey]=useState(getApiKey()),[saved,setSaved]=useState(false);const save=()=>{setApiKeyVal(key.trim());setSaved(true);setTimeout(onClose,500)};const has=!!getApiKey();return<div className="modal-overlay" onClick={onClose}><div className="modal" onClick={e=>e.stopPropagation()}><div className="modal-title">AI Configuration</div><div className="modal-msg">Enter your Anthropic API key. Stays in browser memory only — never stored.</div><input type="password" value={key} onChange={e=>{setKey(e.target.value);setSaved(false)}} placeholder="sk-ant-api03-..." style={{marginBottom:8}}/><div style={{fontSize:10,color:"var(--text3)",marginBottom:16,lineHeight:1.5}}>Get a key at <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener" style={{color:"var(--accent)"}}>console.anthropic.com</a></div><div style={{display:"flex",alignItems:"center",gap:6,fontSize:11,marginBottom:16}}><span style={{width:7,height:7,borderRadius:"50%",background:has?"var(--green)":"var(--text3)",display:"inline-block"}}/>{has?"Key configured":"No key set"}</div><div className="modal-actions"><button className="btn" onClick={onClose}>Cancel</button><button className="btn btn-primary" onClick={save}>{saved?"✓ Saved":"Save"}</button></div></div></div>}
 function ConfirmModal({title,msg,onConfirm,onCancel}){return<div className="modal-overlay" onClick={onCancel}><div className="modal" onClick={e=>e.stopPropagation()}><div className="modal-title">{title}</div><div className="modal-msg">{msg}</div><div className="modal-actions"><button className="btn" onClick={onCancel}>Cancel</button><button className="btn" style={{borderColor:"var(--red)",color:"var(--red)"}} onClick={onConfirm}>Delete</button></div></div></div>}
@@ -733,16 +647,16 @@ function SummaryStep({offer,campaignName}){const[viewMode,setViewMode]=useState(
       let html='<html><head><title>'+offer.name+' — Offer Report</title><style>@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap");body{font-family:Inter,sans-serif;font-size:12px;color:#0f1f1a;max-width:800px;margin:0 auto;padding:30px}h1{font-family:Instrument Serif,serif;font-size:26px;font-weight:400;margin:0 0 4px}h2{font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;margin:28px 0 12px;padding-bottom:8px;border-bottom:1px solid #e4ede8;color:#00b377}h3{font-size:12px;margin:18px 0 8px;color:#5c554d}table{width:100%;border-collapse:collapse;margin:8px 0 16px}th,td{padding:8px 10px;border:1px solid #e4ede8;text-align:left;font-size:11px}th{background:#f7faf7;font-weight:600;font-size:10px;letter-spacing:.04em;text-transform:uppercase;color:#8a9c93}td:first-child{font-weight:500}.badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:10px;font-weight:600}.meta{color:#8a9c93;font-size:12px;margin-bottom:24px}.summary-box{background:#f7faf7;border-left:3px solid #00d68f;padding:16px 18px;margin:14px 0;line-height:1.8;font-size:13px;border-radius:0 10px 10px 0}.mc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:12px 0}.mc-card{border:1px solid #e4ede8;border-radius:14px;padding:16px}.mc-label{font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:#8a9c93;margin-bottom:6px}.mc-val{font-size:24px;font-weight:600}.risk{padding:10px 14px;margin:6px 0;border-radius:8px;font-size:12px;line-height:1.5}.risk-ok{background:#e8f5e9;color:#1a7a3a}.risk-warn{background:#fff8e1;color:#b07714}.risk-risk{background:#fce4ec;color:#c62828}@media print{body{padding:10px}}</style></head><body>';
       html+='<h1>'+offer.name+'</h1><div class="meta">'+(campaignName||"")+" \u2022 Generated "+new Date().toLocaleDateString()+'</div>';
       html+='<h2>Audience</h2><p><strong>Segments:</strong> '+segs+'</p>';if(offer.rc)html+='<p><strong>Custom cohort:</strong> '+offer.rcCount+' users ('+offer.rcLogic+')</p>';
-      html+='<h2>Activity & Triggers</h2><p><strong>Activity:</strong> '+offer.activity+'</p>';if(offer.ctMode==="first")html+='<p><strong>Trigger:</strong> First charging session only</p>';if(offer.wtMode==="first")html+='<p><strong>Trigger:</strong> First wallet top-up only</p>';if(offer.wpre)html+='<p><strong>Pre-load:</strong> \u20b9'+offer.w+' ('+offer.dist+') from '+offer.wa+'</p>';
-      html+='<h2>Reward</h2><p><strong>Type:</strong> '+(offer.wpre?"Pre-load":offer.reward)+'</p>';if(offer.reward==="Cashback"&&!offer.wpre){html+='<table><tr><th>'+(isW?"Top-up #":"Session #")+'</th><th>Rate</th></tr>';offer.tiers.forEach(t=>{html+='<tr><td>#'+t.s+'</td><td>'+t.pct+'%</td></tr>'});html+='</table>'}if(offer.reward==="Discount")html+='<p><strong>Rate:</strong> '+offer.dpct+'%</p>';if(offer.reward==="ChargeXP")html+='<p><strong>XP Rate:</strong> '+offer.xpwpct+' XP/\u20b9</p>';if(offer.reward==="Coupon")html+='<p><strong>Code:</strong> '+offer.p+'</p>';
-      html+='<h2>Limits</h2><table><tr><th>Parameter</th><th>Value</th></tr>';if(offer.un&&!isW&&!isP)html+='<tr><td>Min kWh</td><td>'+offer.un+'</td></tr>';if(offer.cy&&!isP)html+='<tr><td>Max cashback</td><td>\u20b9'+offer.cy+'</td></tr>';if(offer.dy&&!isP)html+='<tr><td>Max discount</td><td>\u20b9'+offer.dy+'</td></tr>';if(offer.wm)html+='<tr><td>Min balance</td><td>\u20b9'+offer.wm+'</td></tr>';if(offer.sx&&!isP)html+='<tr><td>Max sessions</td><td>'+offer.sx+'</td></tr>';if(offer.wpun)html+='<tr><td>Min kWh/session</td><td>'+offer.wpun+'</td></tr>';if(offer.wpc)html+='<tr><td>Total credit cap</td><td>\u20b9'+offer.wpc+'</td></tr>';if(isP&&offer.wsx)html+='<tr><td>Max spend/session</td><td>'+(offer.wsxType==="pct"?offer.wsx+"%":"\u20b9"+offer.wsx)+'</td></tr>';if(isP&&offer.sx)html+='<tr><td>Max sessions</td><td>'+offer.sx+'</td></tr>';html+='</table>';
+      html+='<h2>Activity & Triggers</h2><p><strong>Activity:</strong> '+offer.activity+'</p>';if(offer.ctMode==="first")html+='<p><strong>Trigger:</strong> First charging session only</p>';if(offer.wtMode==="first")html+='<p><strong>Trigger:</strong> First wallet top-up only</p>';if(offer.wpre)html+='<p><strong>Pre-load:</strong> ₹'+offer.w+' ('+offer.dist+') from '+offer.wa+'</p>';
+      html+='<h2>Reward</h2><p><strong>Type:</strong> '+(offer.wpre?"Pre-load":offer.reward)+'</p>';if(offer.reward==="Cashback"&&!offer.wpre){html+='<table><tr><th>'+(isW?"Top-up #":"Session #")+'</th><th>Rate</th></tr>';offer.tiers.forEach(t=>{html+='<tr><td>#'+t.s+'</td><td>'+t.pct+'%</td></tr>'});html+='</table>'}if(offer.reward==="Discount")html+='<p><strong>Rate:</strong> '+offer.dpct+'%</p>';if(offer.reward==="ChargeXP")html+='<p><strong>XP Rate:</strong> '+offer.xpwpct+' XP/₹</p>';if(offer.reward==="Coupon")html+='<p><strong>Code:</strong> '+offer.p+'</p>';
+      html+='<h2>Limits</h2><table><tr><th>Parameter</th><th>Value</th></tr>';if(offer.un&&!isW&&!isP)html+='<tr><td>Min kWh</td><td>'+offer.un+'</td></tr>';if(offer.cy&&!isP)html+='<tr><td>Max cashback</td><td>₹'+offer.cy+'</td></tr>';if(offer.dy&&!isP)html+='<tr><td>Max discount</td><td>₹'+offer.dy+'</td></tr>';if(offer.wm)html+='<tr><td>Min balance</td><td>₹'+offer.wm+'</td></tr>';if(offer.sx&&!isP)html+='<tr><td>Max sessions</td><td>'+offer.sx+'</td></tr>';if(offer.wpun)html+='<tr><td>Min kWh/session</td><td>'+offer.wpun+'</td></tr>';if(offer.wpc)html+='<tr><td>Total credit cap</td><td>₹'+offer.wpc+'</td></tr>';if(isP&&offer.wsx)html+='<tr><td>Max spend/session</td><td>'+(offer.wsxType==="pct"?offer.wsx+"%":"₹"+offer.wsx)+'</td></tr>';if(isP&&offer.sx)html+='<tr><td>Max sessions</td><td>'+offer.sx+'</td></tr>';html+='</table>';
       html+='<h2>Duration</h2><p><strong>Validity:</strong> '+offer.t+' days</p>';if(offer.te)html+='<p><strong>Expiry:</strong> '+offer.te+'</p>';if(offer.ce)html+='<p><strong>Cashback expiry:</strong> '+offer.ce+' days</p>';
       html+='<h2>Business Summary</h2><div class="summary-box">'+pl+'</div>';
       html+='<h2>Technical Specification</h2><table><tr><th>Variable</th><th>Parameter</th><th>Value</th></tr>';rows.forEach(r=>{html+='<tr><td>'+r.v+'</td><td>'+r.p+'</td><td>'+r.val+'</td></tr>'});html+='</table>';
-      if(sTxns&&sTxns.length>0){html+='<h2>Simulation Data</h2><h3>Test Transactions</h3><table><tr><th>#</th><th>Date</th>';if(isW||isP)html+='<th>Amount (\u20b9)</th>';else html+='<th>kWh</th><th>Rate (\u20b9/kWh)</th>';html+='</tr>';sTxns.forEach((tx,i)=>{html+='<tr><td>'+(i+1)+'</td><td>'+(tx.date||"\u2014")+'</td>';if(isW||isP)html+='<td>'+(tx.amount||0)+'</td>';else html+='<td>'+(tx.units||0)+'</td><td>'+(tx.rate||22)+'</td>';html+='</tr>'});html+='</table>'}
-      if(sim){html+='<h3>Did it work?</h3><div class="mc-grid"><div class="mc-card"><div class="mc-label">Rewarded '+(isW&&!isP?"top-ups":"sessions")+'</div><div class="mc-val">'+sim.qualTxns+' / '+sim.rows.length+'</div></div><div class="mc-card"><div class="mc-label">Total reward cost</div><div class="mc-val">\u20b9'+sim.totalReward.toFixed(0)+'</div></div></div>';
-        if(sim.rows){html+='<h3>Transaction Detail</h3><table><tr><th>#</th><th>Date</th>';if(isW||isP)html+='<th>Amount</th>';else html+='<th>kWh</th><th>Net \u20b9</th>';html+='<th>Sess</th><th>Rate</th><th>Reward</th><th>Status</th></tr>';sim.rows.forEach(r=>{html+='<tr><td>'+r.idx+'</td><td>'+r.date+'</td>';if(isW||isP)html+='<td>\u20b9'+(r.amount||0).toFixed(0)+'</td>';else html+='<td>'+r.units+'</td><td>\u20b9'+r.net.toFixed(0)+'</td>';html+='<td>'+r.sessStr+'</td><td>'+r.rateStr+'</td><td>\u20b9'+(r.reward||0).toFixed(0)+'</td><td>'+r.status+'</td></tr>'});html+='</table>'}}
-      if(sRoi){html+='<h3>Was it worth it?</h3><div class="mc-grid"><div class="mc-card"><div class="mc-label">'+sRoi.rewardLabel+'</div><div class="mc-val">\u20b9'+sRoi.liability.toFixed(0)+'</div></div>';if(sRoi.isCharging){html+='<div class="mc-card"><div class="mc-label">Margin earned</div><div class="mc-val">\u20b9'+sRoi.marginEarned.toFixed(0)+'</div></div><div class="mc-card"><div class="mc-label">Net impact</div><div class="mc-val">'+(sRoi.netImpact>=0?"+":"")+'\u20b9'+sRoi.netImpact.toFixed(0)+'</div></div><div class="mc-card"><div class="mc-label">Per session</div><div class="mc-val">'+(sRoi.perSession>=0?"+":"")+'\u20b9'+sRoi.perSession.toFixed(0)+'</div></div>'}html+='<div class="mc-card"><div class="mc-label">Breakeven</div><div class="mc-val">'+sRoi.breakeven+'</div></div></div>';
+      if(sTxns&&sTxns.length>0){html+='<h2>Simulation Data</h2><h3>Test Transactions</h3><table><tr><th>#</th><th>Date</th>';if(isW||isP)html+='<th>Amount (₹)</th>';else html+='<th>kWh</th><th>Rate (₹/kWh)</th>';html+='</tr>';sTxns.forEach((tx,i)=>{html+='<tr><td>'+(i+1)+'</td><td>'+(tx.date||"\u2014")+'</td>';if(isW||isP)html+='<td>'+(tx.amount||0)+'</td>';else html+='<td>'+(tx.units||0)+'</td><td>'+(tx.rate||22)+'</td>';html+='</tr>'});html+='</table>'}
+      if(sim){html+='<h3>Did it work?</h3><div class="mc-grid"><div class="mc-card"><div class="mc-label">Rewarded '+(isW&&!isP?"top-ups":"sessions")+'</div><div class="mc-val">'+sim.qualTxns+' / '+sim.rows.length+'</div></div><div class="mc-card"><div class="mc-label">Total reward cost</div><div class="mc-val">₹'+sim.totalReward.toFixed(0)+'</div></div></div>';
+        if(sim.rows){html+='<h3>Transaction Detail</h3><table><tr><th>#</th><th>Date</th>';if(isW||isP)html+='<th>Amount</th>';else html+='<th>kWh</th><th>Net ₹</th>';html+='<th>Sess</th><th>Rate</th><th>Reward</th><th>Status</th></tr>';sim.rows.forEach(r=>{html+='<tr><td>'+r.idx+'</td><td>'+r.date+'</td>';if(isW||isP)html+='<td>₹'+(r.amount||0).toFixed(0)+'</td>';else html+='<td>'+r.units+'</td><td>₹'+r.net.toFixed(0)+'</td>';html+='<td>'+r.sessStr+'</td><td>'+r.rateStr+'</td><td>₹'+(r.reward||0).toFixed(0)+'</td><td>'+r.status+'</td></tr>'});html+='</table>'}}
+      if(sRoi){html+='<h3>Was it worth it?</h3><div class="mc-grid"><div class="mc-card"><div class="mc-label">'+sRoi.rewardLabel+'</div><div class="mc-val">₹'+sRoi.liability.toFixed(0)+'</div></div>';if(sRoi.isCharging){html+='<div class="mc-card"><div class="mc-label">Margin earned</div><div class="mc-val">₹'+sRoi.marginEarned.toFixed(0)+'</div></div><div class="mc-card"><div class="mc-label">Net impact</div><div class="mc-val">'+(sRoi.netImpact>=0?"+":"")+'₹'+sRoi.netImpact.toFixed(0)+'</div></div><div class="mc-card"><div class="mc-label">Per session</div><div class="mc-val">'+(sRoi.perSession>=0?"+":"")+'₹'+sRoi.perSession.toFixed(0)+'</div></div>'}html+='<div class="mc-card"><div class="mc-label">Breakeven</div><div class="mc-val">'+sRoi.breakeven+'</div></div></div>';
         if(sRoi.risks&&sRoi.risks.length>0){html+='<h3>Risk Assessment</h3>';sRoi.risks.forEach(r=>{html+='<div class="risk risk-'+r.type+'">'+r.msg+'</div>'})}}
       html+='</body></html>';w.document.write(html);w.document.close();setTimeout(()=>w.print(),300);
     }}>Download PDF</button></div>
@@ -765,18 +679,18 @@ function SimulateStep({offer,txns,setTxns,marginPct,onSaveSim}){const[res,setRes
   const genSample=()=>{const t=generateSampleTxns(offer);setTxns(t);onSaveSim({simTxns:t})};
   const run=()=>{const r=runSimulation(offer,txns);const ro=computeROI(offer,r,marginPct);setRes(r);setRoi(ro);onSaveSim({simTxns:txns,simResult:{...r,rows:r.rows},simRoi:ro})};
   return<><div className="card"><div className="card-title">{isP?"Sessions spending pre-load":isW?"Wallet top-ups":"Charging sessions"}</div><button className="sample-btn" onClick={genSample}>{"\u2726"} Generate sample data</button>
-  {(isW||isP)?<>{(()=>{const rows=txns.map((tx,i)=><div key={i} className="txn-row" style={{gridTemplateColumns:"130px 120px 28px"}}><input type="date" value={tx.date||""} onChange={e=>ut(i,"date",e.target.value)}/><input type="number" value={tx.amount||""} placeholder={"\u20b9"} onChange={e=>ut(i,"amount",e.target.value)}/><button className="del-btn" onClick={()=>delTxn(i)}>{"\u00d7"}</button></div>);return<><div className="txn-hdr" style={{gridTemplateColumns:"130px 120px 28px"}}><span>Date</span><span>{isP?"Session \u20b9":"Top-up \u20b9"}</span><span/></div>{rows}</>})()}<button className="btn-dashed" onClick={()=>addTxn({date:"",amount:""})}>+ Add {isP?"session":"top-up"}</button></>:
-  <><div className="txn-hdr"><span>Date</span><span>kWh</span><span>{"\u20b9"}/kWh</span><span/></div>{txns.map((tx,i)=><div key={i} className="txn-row"><input type="date" value={tx.date||""} onChange={e=>ut(i,"date",e.target.value)}/><input type="number" value={tx.units||""} placeholder="kWh" onChange={e=>ut(i,"units",e.target.value)}/><input type="number" value={tx.rate||""} placeholder={"\u20b9/kWh"} onChange={e=>ut(i,"rate",e.target.value)}/><button className="del-btn" onClick={()=>delTxn(i)}>{"\u00d7"}</button></div>)}<button className="btn-dashed" onClick={()=>addTxn({date:"",units:"",rate:"22"})}>+ Add txn</button></>}</div>
+  {(isW||isP)?<>{(()=>{const rows=txns.map((tx,i)=><div key={i} className="txn-row" style={{gridTemplateColumns:"130px 120px 28px"}}><input type="date" value={tx.date||""} onChange={e=>ut(i,"date",e.target.value)}/><input type="number" value={tx.amount||""} placeholder={"₹"} onChange={e=>ut(i,"amount",e.target.value)}/><button className="del-btn" onClick={()=>delTxn(i)}>{"×"}</button></div>);return<><div className="txn-hdr" style={{gridTemplateColumns:"130px 120px 28px"}}><span>Date</span><span>{isP?"Session ₹":"Top-up ₹"}</span><span/></div>{rows}</>})()}<button className="btn-dashed" onClick={()=>addTxn({date:"",amount:""})}>+ Add {isP?"session":"top-up"}</button></>:
+  <><div className="txn-hdr"><span>Date</span><span>kWh</span><span>{"₹"}/kWh</span><span/></div>{txns.map((tx,i)=><div key={i} className="txn-row"><input type="date" value={tx.date||""} onChange={e=>ut(i,"date",e.target.value)}/><input type="number" value={tx.units||""} placeholder="kWh" onChange={e=>ut(i,"units",e.target.value)}/><input type="number" value={tx.rate||""} placeholder={"₹/kWh"} onChange={e=>ut(i,"rate",e.target.value)}/><button className="del-btn" onClick={()=>delTxn(i)}>{"×"}</button></div>)}<button className="btn-dashed" onClick={()=>addTxn({date:"",units:"",rate:"22"})}>+ Add txn</button></>}</div>
   <button className="btn btn-primary" onClick={run} style={{marginBottom:20,width:"100%"}}>Run Simulation</button>
   {res&&<>
-    <div className="dash-section"><div className="dash-title"><span className="dash-icon di-g">{"\u2713"}</span> Did it work?</div><div className="metrics"><div className="mc"><div className="mc-label">Rewarded {isW&&!isP?"top-ups":"sessions"}</div><div className="mc-val">{res.qualTxns}</div><div className="mc-sub">out of {res.rows.length} transactions</div></div><div className="mc"><div className="mc-label">Total {res.rewardType==="ChargeXP"?"XP issued":"reward cost"}</div><div className="mc-val">{res.rewardType==="ChargeXP"?res.totalReward.toFixed(0)+" XP":"\u20b9"+res.totalReward.toFixed(0)}</div></div>{!isW&&!isP&&<div className="mc"><div className="mc-label">Net revenue (pre-GST)</div><div className="mc-val">{"\u20b9"}{res.totalNet.toFixed(0)}</div><div className="mc-sub">Margin applies to this</div></div>}{(isW||isP)&&<div className="mc"><div className="mc-label">{isP?"Session spend":"Total topped up"}</div><div className="mc-val">{"\u20b9"}{res.totalGross.toFixed(0)}</div><div className="mc-sub">{isP?"From pre-loaded balance":"No margin on top-ups"}</div></div>}</div></div>
-    {roi&&<div className="dash-section"><div className="dash-title"><span className="dash-icon di-a">{"\u20b9"}</span> Was it worth it?</div>
-      {roi.isCharging&&<><div className="metrics"><div className="mc"><div className="mc-label">Margin earned</div><div className="mc-val" style={{color:"var(--green)"}}>{"\u20b9"}{roi.marginEarned.toFixed(0)}</div><div className="mc-sub">Net revenue {"\u00d7"} {marginPct}%</div></div><div className="mc"><div className="mc-label">{roi.rewardLabel}</div><div className="mc-val" style={{color:"var(--red)"}}>{"\u20b9"}{roi.liability.toFixed(0)}</div><div className="mc-sub">total payout</div></div><div className="mc"><div className="mc-label">Net impact</div><div className="mc-val" style={{color:roi.netImpact>=0?"var(--green)":"var(--red)"}}>{roi.netImpact>=0?"+":""}{"\u20b9"}{roi.netImpact.toFixed(0)}</div><div className="mc-sub">{roi.netImpact>=0?"Profitable":"Loss"}</div></div><div className="mc"><div className="mc-label">Per session</div><div className="mc-val" style={{color:roi.perSession>=0?"var(--green)":"var(--red)"}}>{roi.perSession>=0?"+":""}{"\u20b9"}{roi.perSession.toFixed(0)}</div><div className="mc-sub">margin - reward</div></div></div><div className="mc" style={{marginTop:10}}><div className="mc-label">Breakeven</div><div className="mc-val">{roi.breakeven}</div></div></>}
-      {roi.isWallet&&<><div className="metrics"><div className="mc"><div className="mc-label">{roi.rewardLabel}</div><div className="mc-val" style={{color:"var(--red)"}}>{"\u20b9"}{roi.liability.toFixed(0)}</div><div className="mc-sub">Leading cost</div></div><div className="mc"><div className="mc-label">Revenue</div><div className="mc-val" style={{color:"var(--text3)"}}>{"\u20b9"}0</div><div className="mc-sub">Lagging</div></div><div className="mc"><div className="mc-label">To break even</div><div className="mc-val">{roi.breakeven}</div><div className="mc-sub">at {marginPct}% margin</div></div></div></>}
-      {roi.isPreload&&<><div className="metrics"><div className="mc"><div className="mc-label">Pre-load cost</div><div className="mc-val" style={{color:"var(--red)"}}>{"\u20b9"}{(parseFloat(offer.w)||0).toFixed(0)}</div><div className="mc-sub">Per user</div></div><div className="mc"><div className="mc-label">Revenue</div><div className="mc-val">{"\u20b9"}{res.totalGross.toFixed(0)}</div><div className="mc-sub">{res.qualTxns} sessions</div></div><div className="mc"><div className="mc-label">Margin</div><div className="mc-val" style={{color:roi.marginEarned>0?"var(--green)":"var(--text3)"}}>{"\u20b9"}{roi.marginEarned.toFixed(0)}</div><div className="mc-sub">at {marginPct}%</div></div><div className="mc"><div className="mc-label">Net impact</div><div className="mc-val" style={{color:roi.netImpact>=0?"var(--green)":"var(--red)"}}>{roi.netImpact>=0?"+":""}{"\u20b9"}{roi.netImpact.toFixed(0)}</div></div></div><div className="mc" style={{marginTop:10}}><div className="mc-label">Breakeven</div><div className="mc-val">{roi.breakeven}</div></div></>}
+    <div className="dash-section"><div className="dash-title"><span className="dash-icon di-g">{"\u2713"}</span> Did it work?</div><div className="metrics"><div className="mc"><div className="mc-label">Rewarded {isW&&!isP?"top-ups":"sessions"}</div><div className="mc-val">{res.qualTxns}</div><div className="mc-sub">out of {res.rows.length} transactions</div></div><div className="mc"><div className="mc-label">Total {res.rewardType==="ChargeXP"?"XP issued":"reward cost"}</div><div className="mc-val">{res.rewardType==="ChargeXP"?res.totalReward.toFixed(0)+" XP":"₹"+res.totalReward.toFixed(0)}</div></div>{!isW&&!isP&&<div className="mc"><div className="mc-label">Net revenue (pre-GST)</div><div className="mc-val">{"₹"}{res.totalNet.toFixed(0)}</div><div className="mc-sub">Margin applies to this</div></div>}{(isW||isP)&&<div className="mc"><div className="mc-label">{isP?"Session spend":"Total topped up"}</div><div className="mc-val">{"₹"}{res.totalGross.toFixed(0)}</div><div className="mc-sub">{isP?"From pre-loaded balance":"No margin on top-ups"}</div></div>}</div></div>
+    {roi&&<div className="dash-section"><div className="dash-title"><span className="dash-icon di-a">{"₹"}</span> Was it worth it?</div>
+      {roi.isCharging&&<><div className="metrics"><div className="mc"><div className="mc-label">Margin earned</div><div className="mc-val" style={{color:"var(--green)"}}>{"₹"}{roi.marginEarned.toFixed(0)}</div><div className="mc-sub">Net revenue {"×"} {marginPct}%</div></div><div className="mc"><div className="mc-label">{roi.rewardLabel}</div><div className="mc-val" style={{color:"var(--red)"}}>{"₹"}{roi.liability.toFixed(0)}</div><div className="mc-sub">total payout</div></div><div className="mc"><div className="mc-label">Net impact</div><div className="mc-val" style={{color:roi.netImpact>=0?"var(--green)":"var(--red)"}}>{roi.netImpact>=0?"+":""}{"₹"}{roi.netImpact.toFixed(0)}</div><div className="mc-sub">{roi.netImpact>=0?"Profitable":"Loss"}</div></div><div className="mc"><div className="mc-label">Per session</div><div className="mc-val" style={{color:roi.perSession>=0?"var(--green)":"var(--red)"}}>{roi.perSession>=0?"+":""}{"₹"}{roi.perSession.toFixed(0)}</div><div className="mc-sub">margin - reward</div></div></div><div className="mc" style={{marginTop:10}}><div className="mc-label">Breakeven</div><div className="mc-val">{roi.breakeven}</div></div></>}
+      {roi.isWallet&&<><div className="metrics"><div className="mc"><div className="mc-label">{roi.rewardLabel}</div><div className="mc-val" style={{color:"var(--red)"}}>{"₹"}{roi.liability.toFixed(0)}</div><div className="mc-sub">Leading cost</div></div><div className="mc"><div className="mc-label">Revenue</div><div className="mc-val" style={{color:"var(--text3)"}}>{"₹"}0</div><div className="mc-sub">Lagging</div></div><div className="mc"><div className="mc-label">To break even</div><div className="mc-val">{roi.breakeven}</div><div className="mc-sub">at {marginPct}% margin</div></div></div></>}
+      {roi.isPreload&&<><div className="metrics"><div className="mc"><div className="mc-label">Pre-load cost</div><div className="mc-val" style={{color:"var(--red)"}}>{"₹"}{(parseFloat(offer.w)||0).toFixed(0)}</div><div className="mc-sub">Per user</div></div><div className="mc"><div className="mc-label">Revenue</div><div className="mc-val">{"₹"}{res.totalGross.toFixed(0)}</div><div className="mc-sub">{res.qualTxns} sessions</div></div><div className="mc"><div className="mc-label">Margin</div><div className="mc-val" style={{color:roi.marginEarned>0?"var(--green)":"var(--text3)"}}>{"₹"}{roi.marginEarned.toFixed(0)}</div><div className="mc-sub">at {marginPct}%</div></div><div className="mc"><div className="mc-label">Net impact</div><div className="mc-val" style={{color:roi.netImpact>=0?"var(--green)":"var(--red)"}}>{roi.netImpact>=0?"+":""}{"₹"}{roi.netImpact.toFixed(0)}</div></div></div><div className="mc" style={{marginTop:10}}><div className="mc-label">Breakeven</div><div className="mc-val">{roi.breakeven}</div></div></>}
     </div>}
     {roi&&roi.risks.length>0&&<div className="dash-section"><div className="dash-title"><span className="dash-icon di-r">{"\u2192"}</span> What next?</div>{roi.risks.map((r,i)=><div key={i} className={"risk-item "+r.type}>{r.msg}</div>)}</div>}
-    <div className="card" style={{padding:0,overflow:"hidden",marginTop:8}}><div style={{padding:"14px 20px 0",fontSize:10,fontWeight:600,letterSpacing:".08em",textTransform:"uppercase",color:"var(--text3)"}}>Transaction Detail</div><div className="scroll-x" style={{padding:"8px 0"}}><table className="result-tbl" style={{minWidth:600}}><thead><tr><th>#</th><th>Date</th>{(isW||isP)&&<th>{isP?"Sess \u20b9":"Top-up \u20b9"}</th>}{!isW&&!isP&&<><th>kWh</th><th>Net \u20b9</th><th>w/ GST</th></>}<th>{isW&&!isP?"#":"Sess"}</th><th>Rate</th><th>{res.rewardType==="ChargeXP"?"XP":"Reward"}</th><th>Status</th></tr></thead><tbody>{res.rows.map((r,i)=><tr key={i}><td>{r.idx}</td><td>{r.date}</td>{(isW||isP)&&<td>{"\u20b9"}{(r.amount||0).toFixed(0)}</td>}{!isW&&!isP&&<><td>{r.units}</td><td>{"\u20b9"}{r.net.toFixed(0)}</td><td>{"\u20b9"}{r.total.toFixed(0)}</td></>}<td>{r.sessStr}</td><td>{r.rateStr}</td><td className="rval">{r.rewardUnit==="XP"?(r.reward||0).toFixed(0)+" XP":"\u20b9"+(r.reward||0).toFixed(0)}</td><td><StatusBadge s={r.status}/></td></tr>)}</tbody></table></div></div>
+    <div className="card" style={{padding:0,overflow:"hidden",marginTop:8}}><div style={{padding:"14px 20px 0",fontSize:10,fontWeight:600,letterSpacing:".08em",textTransform:"uppercase",color:"var(--text3)"}}>Transaction Detail</div><div className="scroll-x" style={{padding:"8px 0"}}><table className="result-tbl" style={{minWidth:600}}><thead><tr><th>#</th><th>Date</th>{(isW||isP)&&<th>{isP?"Sess ₹":"Top-up ₹"}</th>}{!isW&&!isP&&<><th>kWh</th><th>Net ₹</th><th>w/ GST</th></>}<th>{isW&&!isP?"#":"Sess"}</th><th>Rate</th><th>{res.rewardType==="ChargeXP"?"XP":"Reward"}</th><th>Status</th></tr></thead><tbody>{res.rows.map((r,i)=><tr key={i}><td>{r.idx}</td><td>{r.date}</td>{(isW||isP)&&<td>{"₹"}{(r.amount||0).toFixed(0)}</td>}{!isW&&!isP&&<><td>{r.units}</td><td>{"₹"}{r.net.toFixed(0)}</td><td>{"₹"}{r.total.toFixed(0)}</td></>}<td>{r.sessStr}</td><td>{r.rateStr}</td><td className="rval">{r.rewardUnit==="XP"?(r.reward||0).toFixed(0)+" XP":"₹"+(r.reward||0).toFixed(0)}</td><td><StatusBadge s={r.status}/></td></tr>)}</tbody></table></div></div>
     <ScaleProjector offer={offer} simResult={res} simRoi={roi} marginPct={marginPct} onSave={(si)=>onSaveSim({scaleInputs:si})}/>
   </>}</>}
 /* ── Scale to User Base ── */
