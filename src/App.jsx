@@ -1082,12 +1082,12 @@ export default function App(){
         <div className="pulse-org-avatar">CZ</div><span className="pulse-org-name">ChargeZone</span><span className="pulse-org-caret">⌄</span>
       </div>
       <div className="pulse-sec">Workspace</div>
-      <button className={"pulse-nav "+(view==="campaigns"&&!activeCampaign?"active":"")} onClick={()=>{setActiveCampaign(null);setView("campaigns")}}><span className="pulse-nav-glyph">◇</span>Overview</span></button>
-      <button className={"pulse-nav "+((view==="offers"||view==="editor")?"active":"")} onClick={()=>{if(activeCampaign)setView("offers");else setView("campaigns")}}><span className="pulse-nav-glyph">◐</span>Campaigns</span></button>
-      <button className={"pulse-nav "+(view==="schedule"?"active":"")} onClick={()=>setView("schedule")}><span className="pulse-nav-glyph">▦</span>Schedule</span></button>
-      <button className={"pulse-nav "+(aiOpen?"active":"")} onClick={()=>setAiOpen(!aiOpen)}><span className="pulse-nav-glyph">⊙</span>AI Assistant</span>{!getApiKey()&&<span className="pulse-nav-badge">!</span>}</button>
+      <button className={"pulse-nav "+(view==="campaigns"&&!activeCampaign?"active":"")} onClick={()=>{setActiveCampaign(null);setView("campaigns")}}><span className="pulse-nav-glyph">◇</span>Overview</button>
+      <button className={"pulse-nav "+((view==="offers"||view==="editor")?"active":"")} onClick={()=>{if(activeCampaign)setView("offers");else setView("campaigns")}}><span className="pulse-nav-glyph">◐</span>Campaigns</button>
+      <button className={"pulse-nav "+(view==="schedule"?"active":"")} onClick={()=>setView("schedule")}><span className="pulse-nav-glyph">▦</span>Schedule</button>
+      <button className={"pulse-nav "+(aiOpen?"active":"")} onClick={()=>setAiOpen(!aiOpen)}><span className="pulse-nav-glyph">⊙</span>AI Assistant{!getApiKey()&&<span className="pulse-nav-badge">!</span>}</button>
       <div className="pulse-sec">Account</div>
-      <button className="pulse-nav" onClick={()=>setKeyModal(true)}><span className="pulse-nav-glyph">⚙</span>Settings</span></button>
+      <button className="pulse-nav" onClick={()=>setKeyModal(true)}><span className="pulse-nav-glyph">⚙</span>Settings</button>
       <div className="pulse-foot">
         <div className="pulse-foot-avatar">{user.displayName?.[0]?.toUpperCase()||"U"}</div>
         <div style={{flex:1,minWidth:0}}>
