@@ -368,7 +368,47 @@ input[type=text],input[type=number],input[type=date],input[type=password],select
 @media(max-width:900px){.app,.pulse-shell{grid-template-columns:1fr}.pulse-side,.sidebar{position:fixed;top:0;left:0;right:0;bottom:auto;height:auto;flex-direction:row;gap:4px;padding:8px 10px;overflow-x:auto;border-right:none;border-bottom:1px solid var(--line);z-index:20}.pulse-sec,.pulse-foot,.pulse-brand,.pulse-org,.sb-section,.sb-foot,.sb-org,.sb-brand{display:none}.pulse-nav,.sb-item{white-space:nowrap;font-size:11px;padding:8px 12px;border-radius:8px}.pulse-main,.main-area{padding-top:50px;height:auto}.pulse-content,.content{padding:0 16px 60px}.seg-cards,.offers-grid{grid-template-columns:1fr}.grid2,.bc-grid,.act-grid,.rwd-grid,.dist-grid{grid-template-columns:1fr}.metrics,.sched-stats{grid-template-columns:1fr 1fr}.steps{flex-wrap:nowrap}.step{min-width:70px;flex-shrink:0}.ai-drawer{width:100%;right:-100%}.campaign-list{grid-template-columns:1fr}.wif-grid{grid-template-columns:1fr}.wif-headline,.db-summary{grid-template-columns:1fr}.wif-headline-block,.db-status,.db-metric{border-right:none;border-bottom:1px solid var(--line);padding:0 0 14px}.wif-headline-block:last-child,.db-metric:last-child{border-bottom:none}.login-page{grid-template-columns:1fr}.login-hero{display:none}.ship-options,.quickstart{grid-template-columns:1fr}}
 @media(min-width:901px){.mobile-bar{display:none}}
 ::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:10px;border:2px solid var(--bg)}::-webkit-scrollbar-thumb:hover{background:var(--ink3)}
+
+/* Studio layout */
+.studio{display:grid;grid-template-columns:1fr 380px;gap:24px;align-items:start}
+.studio-left{display:flex;flex-direction:column;gap:0}
+.studio-right{position:sticky;top:80px}
+.studio-section{border:1px solid var(--line);border-radius:var(--r3);background:var(--paper);margin-bottom:12px;overflow:hidden}
+.studio-section-head{display:flex;align-items:center;gap:14px;padding:18px 24px;cursor:pointer;transition:background .12s}
+.studio-section-head:hover{background:var(--bg2)}
+.studio-section-num{font-size:14px;color:var(--ink3);font-weight:500;width:24px;flex-shrink:0}
+.studio-section-title{font-family:var(--display);font-size:22px;font-weight:400;flex:1}
+.studio-section-chip{font-size:11px;padding:3px 10px;border-radius:12px;font-weight:600}
+.studio-section-chip.filled{background:var(--ok-soft);color:var(--ok)}
+.studio-section-chip.empty{background:var(--bg3);color:var(--ink3)}
+.studio-section-arrow{color:var(--ink3);font-size:14px;transition:transform .2s}
+.studio-section-arrow.open{transform:rotate(180deg)}
+.studio-section-summary{font-size:12px;color:var(--ink3);padding:0 24px 14px 62px}
+.studio-section-body{padding:6px 24px 24px 24px;border-top:1px solid var(--line)}
+.studio-insight{margin:12px 0;padding:14px 18px;background:var(--accent-soft);border-radius:var(--r2);font-size:13px;color:var(--ink2);line-height:1.6}
+.studio-insight b{color:var(--accent);font-weight:600}
+.preview-card{background:var(--paper);border:1px solid var(--line);border-radius:var(--r3);padding:24px;box-shadow:var(--sh)}
+.preview-tabs{display:inline-flex;gap:4px;padding:4px;background:var(--bg2);border:1px solid var(--line);border-radius:var(--r2);margin-bottom:20px}
+.preview-tab{padding:8px 16px;border-radius:var(--r1);font-size:12px;font-weight:500;cursor:pointer;border:none;background:transparent;color:var(--ink3)}.preview-tab.active{background:var(--ink);color:var(--bg)}
+.preview-section-label{font-size:10px;font-weight:600;letter-spacing:.10em;text-transform:uppercase;color:var(--ink3);margin:20px 0 10px}
+.preview-plain{font-size:14px;line-height:1.7;color:var(--ink2)}.preview-plain b{color:var(--ink);font-weight:600}
+.preview-outcome{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:16px}
+.preview-outcome-val{font-family:var(--display);font-size:44px;letter-spacing:-.02em;line-height:1}
+.preview-outcome-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.preview-outcome-item{font-size:12px}.preview-outcome-item .label{color:var(--ink3);margin-bottom:2px}.preview-outcome-item .val{font-family:var(--mono);font-weight:600;font-size:13px}
+.preview-risk{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);font-size:12.5px;line-height:1.5}.preview-risk:last-child{border-bottom:none}
+.preview-risk-dot{width:16px;height:16px;border-radius:6px;display:grid;place-items:center;font-size:10px;flex-shrink:0;margin-top:2px}
+.sim-button{display:block;width:100%;padding:16px;background:var(--ink);color:var(--bg);border:none;border-radius:var(--r2);font-size:14px;font-weight:600;cursor:pointer;margin-top:20px;text-align:center;transition:background .12s}.sim-button:hover{background:#000}
+/* Campaign Canvas */
+.offer-table{background:var(--paper);border:1px solid var(--line);border-radius:var(--r3);overflow:hidden}
+.offer-table-head{display:grid;grid-template-columns:1fr 100px 130px 140px 100px 130px 60px;padding:12px 22px;border-bottom:1px solid var(--line);background:var(--bg2);font-size:10px;letter-spacing:.10em;text-transform:uppercase;color:var(--ink3);font-weight:600;gap:12px}
+.offer-table-row{display:grid;grid-template-columns:1fr 100px 130px 140px 100px 130px 60px;padding:16px 22px;border-bottom:1px solid var(--line);align-items:center;gap:12px;cursor:pointer;transition:background .12s}.offer-table-row:hover{background:var(--bg2)}.offer-table-row:last-child{border-bottom:none}
+.offer-table-add{padding:14px 22px;border-top:1px solid var(--line);cursor:pointer;color:var(--ink3);font-size:13px;font-weight:500;text-align:center;transition:color .12s}.offer-table-add:hover{color:var(--accent)}
+.bar-wrap{height:3px;background:var(--bg3);border-radius:2px;overflow:hidden}.bar-fill{height:100%;border-radius:2px}
+.composition-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:24px}
+@media(max-width:900px){.studio{grid-template-columns:1fr}.studio-right{position:static}.offer-table-head,.offer-table-row{grid-template-columns:1fr;gap:4px}.composition-grid{grid-template-columns:1fr}}
 `;
+
 
 
 /* ── API helpers ── */
@@ -1034,45 +1074,208 @@ export default function App(){
       {/* SCHEDULE VIEW */}
       {view==="schedule"&&<ScheduleView allOffers={allOffers} campaigns={campaigns} onOpenOffer={(o)=>{const camp=campaigns.find(c=>c._id===o.campaignId);if(camp){setActiveCampaign(camp);api("/offers?campaignId="+camp._id).then(offs=>{setOffers(offs);setCid(o._id||o.id);setStep(0);setTxns(o.simTxns||defaultTxns(o.activity));setLastSim(o.simResult||null);setView("editor")}).catch(()=>{})}}}/>}
 
-      {/* OFFERS VIEW */}
-      {view==="offers"&&activeCampaign&&<><div className="pulse-h">
-        <div className="page-hdr-sub" onClick={()=>{setActiveCampaign(null);setView("campaigns")}}>← All Campaigns</div>
-        <input style={{fontFamily:"var(--font-display)",fontSize:28,fontWeight:400,border:"none",background:"none",width:"100%",padding:0,color:"var(--text)"}} value={activeCampaign.name} onChange={e=>{setActiveCampaign(p=>({...p,name:e.target.value}));updateCampaignName(e.target.value)}} placeholder="Campaign name"/>
-      </div>
-      <div style={{display:"flex",gap:14,marginBottom:20,alignItems:"center"}}><div className="field" style={{maxWidth:180}}><div className="field-label">Charging margin %</div><input type="number" value={marginPct} min="1" max="100" onChange={e=>updateMargin(parseInt(e.target.value)||30)} style={{padding:"7px 10px"}}/></div><div style={{fontSize:11,color:"var(--text3)",lineHeight:1.5,maxWidth:400}}>Margin on charging net revenue (pre-GST). Wallet top-ups don't generate margin.</div></div>
-      {/* Campaign Dashboard — Decision Board */}
-      {offers.length>0&&<div style={{marginBottom:24}}>
-        {(()=>{const totalCost=offers.reduce((s,o)=>s+(o.simResult?.totalReward||0),0);const simCount=offers.filter(o=>o.simResult).length;const allSegs=[...new Set(offers.flatMap(o=>o.segments||[]))];const segText=allSegs.includes("All")?"All segments":allSegs.filter(s=>s!=="All").join(", ")||"None";const conflictCount=Math.round(Object.keys(conflicts).length/2);const hasNeg=offers.some(o=>o.simRoi&&o.simRoi.netImpact<0);const verdict=conflictCount>0?"Conflicts detected":hasNeg?"Some offers losing money":simCount===0?"Not yet tested":totalCost>0?"Viable":"Ready";const orbClass=conflictCount>0||hasNeg?"caution":simCount===0?"caution":"healthy";return<div className="db-summary">
-          <div className="db-status"><div className={"db-status-orb "+orbClass}>{orbClass==="healthy"?"✓":"⚠"}</div><div className="db-status-text">{verdict}</div><div className="db-status-sub">{offers.length} offers · {simCount} simulated</div></div>
-          <div className="db-metric"><div className="db-metric-label">Projected reward</div><div className="db-metric-val" style={{color:totalCost>0?"var(--red)":"var(--text3)"}}>₹{totalCost.toLocaleString()}</div><div className={"db-metric-delta "+(totalCost>0?"down":"")}>{simCount>0?"from "+simCount+" simulations":"run simulations first"}</div></div>
-          <div className="db-metric"><div className="db-metric-label">Segments</div><div className="db-metric-val" style={{fontSize:18}}>{segText}</div><div className="db-metric-delta">{offers.filter(o=>!o.segments||o.segments.length===0).length>0?offers.filter(o=>!o.segments||o.segments.length===0).length+" without segment":""}</div></div>
-          <div className="db-metric" style={{borderRight:"none"}}><div className="db-metric-label">Conflicts</div><div className="db-metric-val" style={{color:conflictCount>0?"var(--red)":"var(--green)"}}>{conflictCount>0?conflictCount:"None"}</div>{conflictCount>0&&<div className="db-metric-delta down">segment + reward overlap</div>}</div>
-        </div>})()}
-        {offers.length>1&&<div className="card" style={{padding:0,overflow:"hidden",marginBottom:16}}><div style={{padding:"14px 20px 0",fontSize:10,fontWeight:600,letterSpacing:".08em",textTransform:"uppercase",color:"var(--text3)"}}>Offer comparison</div><div className="scroll-x" style={{padding:"8px 0"}}><table className="result-tbl" style={{minWidth:600}}><thead><tr><th>Offer</th><th>Segment</th><th>Type</th><th>Activity</th><th>Key rate</th><th>Cap</th><th>Duration</th><th>Reward cost</th><th>Net impact</th></tr></thead><tbody>{offers.map(o=>{const tp=o.wpre?"Pre-load":o.reward;const rate=o.wpre?"₹"+(o.w||"—"):o.reward==="Cashback"?(o.tiers?.[0]?.pct||"—")+"%":o.reward==="Discount"?(o.dpct||"—")+"%":o.reward==="ChargeXP"?(o.xpwpct||"—")+" XP/₹":o.p||"—";const cap=o.cy?"₹"+o.cy:o.dy?"₹"+o.dy:"—";const sr=o.simResult;const sRoi=o.simRoi;return<tr key={o._id||o.id} style={{cursor:"pointer"}} onClick={()=>openOffer(o._id||o.id)}><td style={{fontWeight:600}}>{o.name}</td><td>{o.segments?.join(", ")||"—"}</td><td><span style={{fontSize:10,padding:"2px 8px",borderRadius:10,background:"var(--bg3)"}}>{tp}</span></td><td>{o.activity}</td><td>{rate}</td><td>{cap}</td><td>{o.t}d</td><td>{sr?"₹"+sr.totalReward.toFixed(0):"—"}</td><td style={{color:sRoi?(sRoi.netImpact>=0?"var(--green)":"var(--red)"):"var(--text3)"}}>{sRoi?(sRoi.netImpact>=0?"+":"")+"₹"+sRoi.netImpact.toFixed(0):"—"}</td></tr>})}</tbody></table></div></div>}
-      </div>}
-      {offersLoading&&<div style={{textAlign:"center",padding:40,color:"var(--text3)"}}>Loading offers...</div>}
-      {!offersLoading&&<div className="offers-grid">{offers.map(o=>{const tp=o.wpre?"Pre-load":o.reward,oid=o._id||o.id,hc=conflicts[oid],st=getOfferStatus(o);return<div key={oid} className={"offer-card "+(oid===cid?"active":"")} onClick={()=>openOffer(oid)}><div className="offer-card-actions" onClick={e=>e.stopPropagation()}><button onClick={()=>dupOffer(oid)} title="Duplicate">⧉</button><button className="del" onClick={()=>setDelTarget(oid)} title="Delete">×</button></div><div className="offer-card-type"><div className="offer-card-dot" style={{background:DOT_COLORS[tp]}}/><div className="offer-card-label">{tp}</div><span style={{marginLeft:"auto",fontSize:10,padding:"2px 8px",borderRadius:12,background:STATUS_BG[st],color:STATUS_COLORS[st],fontWeight:600}}>{STATUS_LABELS[st]||st}</span></div><div className="offer-card-name">{o.name}</div><div className="offer-card-segs">{o.segments?.length?o.segments.join(", "):"No segment"}{o.startDate?" · Starts "+o.startDate:""}</div>{hc&&<div style={{fontSize:10,color:"var(--red)",marginTop:6}}>⚠ {hc[0]}</div>}</div>})}<div className="add-card" onClick={()=>setShowTemplates(true)}>+ New Offer</div></div>}
-      {showTemplates&&<div className="modal-overlay" onClick={()=>setShowTemplates(false)}><div className="modal" style={{maxWidth:520}} onClick={e=>e.stopPropagation()}><div className="modal-title">Choose a starting point</div><div className="modal-msg">Pick a template to pre-fill your offer, or start from scratch.</div>{OFFER_TEMPLATES.map((t,i)=><div key={i} style={{padding:"14px 16px",border:"1px solid var(--border)",borderRadius:"var(--r)",marginBottom:8,cursor:"pointer",transition:"all .15s"}} onClick={()=>addOffer(t)} onMouseOver={e=>e.currentTarget.style.borderColor="var(--accent)"} onMouseOut={e=>e.currentTarget.style.borderColor="var(--border)"}><div style={{fontSize:13,fontWeight:600,marginBottom:2}}>{t.name}</div><div style={{fontSize:11,color:"var(--text3)"}}>{t.desc}</div></div>)}</div></div>}
+      {/* OFFERS VIEW — Campaign Canvas */}
+      {view==="offers"&&activeCampaign&&<>
+        <div className="pulse-h">
+          <div>
+            <div className="row" style={{gap:10,marginBottom:6}}>
+              <span className="pchip live"><span className="pchip-dot" style={{background:"var(--ok)"}}/>Live</span>
+              <span className="muted" style={{fontSize:12}}>Margin assumption {marginPct}%</span>
+            </div>
+            <h1>{activeCampaign.name}</h1>
+            <div className="lede">{offers.length} offers configured. Click any offer to open the Studio.</div>
+          </div>
+          <div className="row" style={{gap:8}}>
+            <button className="pbtn sm" onClick={()=>{setActiveCampaign(null);setView("campaigns")}}>← Back</button>
+            <button className="pbtn sm">Export brief</button>
+            <button className="pbtn accent sm" onClick={()=>setShowTemplates(true)}>+ New offer</button>
+          </div>
+        </div>
+        {/* Campaign KPIs */}
+        {offers.length>0&&<div style={{display:"grid",gridTemplateColumns:"1.4fr 1fr 1fr 1fr",gap:14,marginBottom:24}}>
+          <div className="pcard" style={{padding:"22px 26px"}}>
+            <div className="pmetric-label">Net P&L · projected</div>
+            <div className="row" style={{gap:14,alignItems:"flex-end",marginTop:6}}>
+              <div className="pmetric-val" style={{color:offers.some(o=>o.simResult)?"var(--ok)":"var(--ink3)"}}>{offers.some(o=>o.simResult)?"+₹"+(offers.reduce((s,o)=>s+(o.simRoi?.netImpact||0),0)/1000).toFixed(1)+"k":"—"}</div>
+            </div>
+            <div className="divider"/>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:14,fontSize:12}}>
+              <div><div className="muted" style={{marginBottom:2}}>Margin</div><div className="b">+₹{(offers.reduce((s,o)=>s+(o.simRoi?.marginEarned||0),0)/1000).toFixed(1)}k</div></div>
+              <div><div className="muted" style={{marginBottom:2}}>Reward cost</div><div className="b" style={{color:"var(--bad)"}}>-₹{(offers.reduce((s,o)=>s+(o.simResult?.totalReward||0),0)/1000).toFixed(1)}k</div></div>
+              <div><div className="muted" style={{marginBottom:2}}>Offers</div><div className="b">{offers.length}</div></div>
+            </div>
+          </div>
+          <div className="pcard"><div className="pmetric-label">Simulated</div><div className="pmetric-val">{offers.filter(o=>o.simResult).length}/{offers.length}</div><div className="muted" style={{fontSize:11,marginTop:4}}>{offers.filter(o=>!o.simResult).length} pending</div></div>
+          <div className="pcard"><div className="pmetric-label">Segments</div><div className="pmetric-val" style={{fontSize:20}}>{[...new Set(offers.flatMap(o=>o.segments||[]))].join(", ")||"—"}</div></div>
+          <div className="pcard"><div className="pmetric-label">Conflicts</div><div className="pmetric-val" style={{color:Object.keys(conflicts).length>0?"var(--bad)":"var(--ok)"}}>{Object.keys(conflicts).length>0?Math.round(Object.keys(conflicts).length/2):"None"}</div></div>
+        </div>}
+        {/* Offer Table */}
+        {offersLoading&&<div style={{textAlign:"center",padding:40,color:"var(--ink3)"}}>Loading offers...</div>}
+        {!offersLoading&&offers.length>0&&<>
+          <div className="spread" style={{marginBottom:14}}>
+            <div className="serif" style={{fontSize:24}}>Offers in this campaign</div>
+          </div>
+          <div className="offer-table">
+            <div className="offer-table-head"><span>Offer</span><span>Status</span><span>Reward</span><span>Segments</span><span style={{textAlign:"right"}}>Simulated</span><span style={{textAlign:"right"}}>Per-session</span><span></span></div>
+            {offers.map((o,i)=>{const tp=o.wpre?"Pre-load":o.reward;const st=getOfferStatus(o);const oid=o._id||o.id;const perSess=o.simResult&&o.simResult.qualTxns>0?o.simResult.totalReward/o.simResult.qualTxns:null;return<div key={oid} className="offer-table-row" onClick={()=>openOffer(oid)}>
+              <div><div className="b" style={{fontSize:14,marginBottom:3}}>{o.name}</div><div className="muted" style={{fontSize:11}}>{o.activity}{o.ctMode==="first"?" · First only":""}</div></div>
+              <div><span className={"pchip "+(st==="live"?"live":st==="approved"?"ok":st==="ready"?"info":"draft")}>{STATUS_LABELS[st]||st}</span></div>
+              <div><span className={"pchip "+tp.toLowerCase().replace("-","").replace(" ","")}><span className="pchip-dot" style={{background:DOT_COLORS[tp]||"var(--ink3)"}}/>{tp}</span></div>
+              <div style={{fontSize:12}}>{o.segments?.join(", ")||"—"}</div>
+              <div style={{textAlign:"right"}}>{o.simResult?<span className="pchip ok">Yes</span>:<span className="muted" style={{fontSize:11}}>—</span>}</div>
+              <div style={{textAlign:"right",fontFamily:"var(--mono)",fontSize:12,color:perSess!==null?(o.simRoi?.netImpact>=0?"var(--ok)":"var(--bad)"):"var(--ink3)"}}>{perSess!==null?(o.simRoi?.netImpact>=0?"+":"")+"\u20b9"+perSess.toFixed(0)+"/sess":"—"}</div>
+              <div style={{textAlign:"right"}}><button className="pbtn ghost sm" onClick={e=>{e.stopPropagation();setDelTarget(oid)}}>⋯</button></div>
+            </div>})}
+            <div className="offer-table-add" onClick={()=>setShowTemplates(true)}>+ Add another offer to this campaign</div>
+          </div>
+        </>}
+        {!offersLoading&&offers.length===0&&<div className="pcard" style={{textAlign:"center",padding:40,color:"var(--ink3)"}}>
+          <div style={{fontSize:24,marginBottom:8}}>No offers yet</div>
+          <button className="pbtn accent" onClick={()=>setShowTemplates(true)}>+ Create first offer</button>
+        </div>}
+        {/* Composition panels */}
+        {offers.length>0&&<div className="composition-grid">
+          <div className="pcard">
+            <div className="pcard-hd"><div><div className="pcard-t">Reach across segments</div><div className="pcard-sub">How offers cover your audience</div></div></div>
+            {["New","Engaged","Existing","Dormant","All"].map(s=>{const count=offers.filter(o=>(o.segments||[]).includes(s)||(o.segments||[]).includes("All")&&s!=="All").length;const pct=Math.min(100,count*25);return<div key={s} style={{marginBottom:14}}>
+              <div className="spread" style={{marginBottom:5,fontSize:12}}><span className="row" style={{gap:8}}><span style={{fontFamily:"var(--display)",fontSize:16,color:"var(--ink2)"}}>{SEGMENTS[s]?.icon||"◎"}</span><span className="b">{s}</span></span><span className="muted">{count} offer{count!==1?"s":""}</span></div>
+              <div className="bar-wrap"><div className="bar-fill" style={{width:pct+"%",background:count===0?"var(--bg3)":"var(--ink)"}}/></div>
+            </div>})}
+          </div>
+          <div className="pcard">
+            <div className="pcard-hd"><div><div className="pcard-t">Reward mix</div><div className="pcard-sub">Where the budget is going</div></div></div>
+            {["Cashback","Coupon","Discount","ChargeXP","Pre-load"].map(r=>{const list=offers.filter(o=>(o.wpre?"Pre-load":o.reward)===r);if(!list.length)return null;const cost=list.reduce((s,o)=>s+(o.simResult?.totalReward||0),0);const totalCost=offers.reduce((s,o)=>s+(o.simResult?.totalReward||0),0);const pct=totalCost>0?(cost/totalCost*100):0;return<div key={r} style={{marginBottom:14}}>
+              <div className="spread" style={{marginBottom:5,fontSize:12}}><span className={"pchip "+r.toLowerCase().replace("-","").replace(" ","")}><span className="pchip-dot" style={{background:DOT_COLORS[r]||"var(--ink3)"}}/>{r}</span><span className="muted">₹{(cost/1000).toFixed(1)}k · {Math.round(pct)}%</span></div>
+              <div className="bar-wrap"><div className="bar-fill" style={{width:Math.max(pct,2)+"%",background:DOT_COLORS[r]||"var(--ink3)"}}/></div>
+            </div>})}
+          </div>
+        </div>}
+      {showTemplates&&<div className="modal-overlay" onClick={()=>setShowTemplates(false)}><div className="modal" style={{maxWidth:520}} onClick={e=>e.stopPropagation()}><div className="modal-title">Choose a starting point</div><div className="modal-msg">Pick a template or start from scratch.</div>{OFFER_TEMPLATES.map((t,i)=><div key={i} style={{padding:"14px 16px",border:"1px solid var(--line)",borderRadius:"var(--r1)",marginBottom:8,cursor:"pointer",transition:"all .12s"}} onClick={()=>addOffer(t)} onMouseOver={e=>e.currentTarget.style.borderColor="var(--accent)"} onMouseOut={e=>e.currentTarget.style.borderColor="var(--line)"}><div style={{fontSize:13,fontWeight:600,marginBottom:2}}>{t.name}</div><div style={{fontSize:11,color:"var(--ink3)"}}>{t.desc}</div></div>)}</div></div>}
       </>}
 
-      {/* EDITOR VIEW */}
-      {view==="editor"&&offer&&<><div className="pulse-h">
-        <div className="page-hdr-sub" onClick={()=>setView("offers")}>← {activeCampaign?.name||"Offers"}</div>
-        <input style={{fontFamily:"var(--font-display)",fontSize:28,fontWeight:400,border:"none",borderBottom:"2px solid var(--border)",background:"none",width:"100%",padding:"0 0 4px",color:"var(--text)"}} value={offer.name} onChange={e=>upd({name:e.target.value})} placeholder="Offer name"/>
-        <div style={{display:"flex",alignItems:"center",gap:10,marginTop:8}}>
-          <span style={{fontSize:11,color:"var(--text3)",fontWeight:500}}>Status:</span>
-          <div style={{display:"flex",gap:4}}>{OFFER_STATUSES.map(s=><button key={s} onClick={()=>upd({offerStatus:s})} style={{padding:"4px 12px",borderRadius:20,border:"1px solid "+(offer.offerStatus===s||(!offer.offerStatus&&s==="draft")?"var(--border2)":"var(--border)"),background:(offer.offerStatus===s||(!offer.offerStatus&&s==="draft"))?STATUS_BG[s]:"var(--bg)",color:(offer.offerStatus===s||(!offer.offerStatus&&s==="draft"))?STATUS_COLORS[s]:"var(--text3)",fontSize:11,fontWeight:600,cursor:"pointer",transition:"all .12s"}}>{STATUS_LABELS[s]}</button>)}</div>
+      {/* EDITOR — OFFER STUDIO */}
+      {view==="editor"&&offer&&<>
+        <div className="pulse-h">
+          <div>
+            <div className="eyebrow">Offer Studio</div>
+            <input style={{fontFamily:"var(--display)",fontSize:36,fontWeight:400,border:"none",background:"none",width:"100%",padding:0,color:"var(--ink)",letterSpacing:"-.02em"}} value={offer.name} onChange={e=>upd({name:e.target.value})} placeholder="Offer name"/>
+            <div className="lede" style={{marginTop:6}}>Compose by section. Toggle, drag, replace — preview rebuilds the spec live.</div>
+          </div>
+          <div className="row" style={{gap:8}}>
+            <div className="save-indicator saved">● Saved</div>
+            <button className="pbtn sm" onClick={()=>setView("offers")}>Discard</button>
+            <button className="pbtn sm" onClick={()=>upd({offerStatus:"draft"})}>Save draft</button>
+            <button className="pbtn primary sm" onClick={()=>upd({offerStatus:"ready"})}>Send for review</button>
+          </div>
         </div>
-      </div>
-        <div className="steps">{STEPS.map((s,i)=>{let cls="";if(i===step)cls="active";else if(i<step)cls=validateStep(offer,i)?"done":"incomplete";return<div key={i} className={"step "+cls} onClick={()=>setStep(i)}>{s.label}</div>})}</div>
-        <div style={{marginBottom:20,padding:"12px 16px",background:"var(--bg2)",border:"1px solid var(--border)",borderRadius:"var(--r2)"}}><div style={{fontSize:15,fontWeight:600,marginBottom:2}}>{STEPS[step].title}</div><div style={{fontSize:12,color:"var(--text3)"}}>{STEPS[step].desc}</div></div>
-        {step===0&&<><AudienceStep offer={offer} update={upd}/><div className="btn-row"><button className="btn btn-primary" onClick={()=>setStep(1)}>Next →</button></div></>}
-        {step===1&&<><ActivityStep offer={offer} update={upd} setTxns={setTxns}/><div className="btn-row"><button className="btn" onClick={()=>setStep(0)}>← Back</button><button className="btn btn-primary" onClick={()=>setStep(2)}>Next →</button></div></>}
-        {step===2&&<><RewardStep offer={offer} update={upd}/><div className="btn-row"><button className="btn" onClick={()=>setStep(1)}>← Back</button><button className="btn btn-primary" onClick={()=>setStep(3)}>Next →</button></div></>}
-        {step===3&&<><BoundaryStep offer={offer} update={upd}/><div className="btn-row"><button className="btn" onClick={()=>setStep(2)}>← Back</button><button className="btn btn-primary" onClick={()=>setStep(4)}>Next →</button></div></>}
-        {step===4&&<><DurationStep offer={offer} update={upd}/><div className="btn-row"><button className="btn" onClick={()=>setStep(3)}>← Back</button><button className="btn btn-primary" onClick={()=>setStep(5)}>Review →</button></div></>}
-        {step===5&&<><SummaryStep offer={offer} campaignName={activeCampaign?.name}/><div className="btn-row"><button className="btn" onClick={()=>setStep(4)}>← Back</button><button className="btn btn-primary" onClick={()=>setStep(6)}>Test scenarios →</button></div></>}
-        {step===6&&<><SimulateStep offer={offer} txns={txns} setTxns={setTxns} marginPct={marginPct} onSaveSim={(simData)=>{setOffers(p=>p.map(o=>(o._id||o.id)===cid?{...o,...simData}:o));if(cid){api("/offers?id="+cid,{method:"PUT",body:simData}).catch(()=>{})}}}/><div className="btn-row"><button className="btn" onClick={()=>setStep(5)}>← Back</button></div></>}
+        <div className="studio">
+          <div className="studio-left">
+            {/* Section 01 — Audience */}
+            <div className="studio-section">
+              <div className="studio-section-head" onClick={()=>setStep(step===0?-1:0)}>
+                <span className="studio-section-num">01</span>
+                <span className="studio-section-title">Who's this for?</span>
+                <span className={"studio-section-chip "+(offer.segments?.length>0?"filled":"empty")}>{offer.segments?.length>0?"Filled":"Empty"}</span>
+                <span className={"studio-section-arrow "+(step===0?"open":"")}>▾</span>
+              </div>
+              {step!==0&&offer.segments?.length>0&&<div className="studio-section-summary">{offer.segments.join(", ")}{offer.rc?" + "+offer.rcCount+" CSV IDs":""}</div>}
+              {step===0&&<div className="studio-section-body"><AudienceStep offer={offer} update={upd}/></div>}
+            </div>
+            {/* Section 02 — Activity */}
+            <div className="studio-section">
+              <div className="studio-section-head" onClick={()=>setStep(step===1?-1:1)}>
+                <span className="studio-section-num">02</span>
+                <span className="studio-section-title">What earns it?</span>
+                <span className={"studio-section-chip "+(offer.activity?"filled":"empty")}>{offer.activity?"Filled":"Empty"}</span>
+                <span className={"studio-section-arrow "+(step===1?"open":"")}>▾</span>
+              </div>
+              {step!==1&&<div className="studio-section-summary">{offer.activity}{offer.wpre?" · Pre-loaded wallet":""}{offer.ctMode==="first"?" · First session only":""}</div>}
+              {step===1&&<div className="studio-section-body"><ActivityStep offer={offer} update={upd} setTxns={setTxns}/></div>}
+            </div>
+            {/* Section 03 — Reward */}
+            <div className="studio-section">
+              <div className="studio-section-head" onClick={()=>setStep(step===2?-1:2)}>
+                <span className="studio-section-num">03</span>
+                <span className="studio-section-title">What do they get?</span>
+                <span className={"studio-section-chip "+(validateStep(offer,2)?"filled":"empty")}>{validateStep(offer,2)?"Filled":"Empty"}</span>
+                <span className={"studio-section-arrow "+(step===2?"open":"")}>▾</span>
+              </div>
+              {step!==2&&<div className="studio-section-summary">{offer.wpre?"Pre-loaded ₹"+(offer.w||"—"):offer.reward}{offer.reward==="Cashback"&&!offer.wpre?" · "+offer.tiers?.map(t=>t.pct+"%").join("→"):""}{offer.reward==="Discount"?" · "+offer.dpct+"%":""}</div>}
+              {step===2&&<div className="studio-section-body"><RewardStep offer={offer} update={upd}/></div>}
+            </div>
+            {/* Section 04 — Guardrails */}
+            <div className="studio-section">
+              <div className="studio-section-head" onClick={()=>setStep(step===3?-1:3)}>
+                <span className="studio-section-num">04</span>
+                <span className="studio-section-title">Guardrails</span>
+                <span className={"studio-section-chip filled"}>Filled</span>
+                <span className={"studio-section-arrow "+(step===3?"open":"")}>▾</span>
+              </div>
+              {step!==3&&<div className="studio-section-summary">{offer.cy?"Cap ₹"+offer.cy+"/sess":"No cap"}{offer.un?" · Min "+offer.un+" kWh":""}{offer.sx?" · Max "+offer.sx+" sessions":""}</div>}
+              {step===3&&<div className="studio-section-body"><BoundaryStep offer={offer} update={upd}/></div>}
+            </div>
+            {/* Section 05 — Duration */}
+            <div className="studio-section">
+              <div className="studio-section-head" onClick={()=>setStep(step===4?-1:4)}>
+                <span className="studio-section-num">05</span>
+                <span className="studio-section-title">When does it run?</span>
+                <span className={"studio-section-chip "+(offer.t?"filled":"empty")}>{offer.t?"Filled":"Empty"}</span>
+                <span className={"studio-section-arrow "+(step===4?"open":"")}>▾</span>
+              </div>
+              {step!==4&&<div className="studio-section-summary">{offer.t} days{offer.startDate?" · Starts "+offer.startDate:""}{offer.ce?" · cashback expires "+offer.ce+"d after earn":""}</div>}
+              {step===4&&<div className="studio-section-body"><DurationStep offer={offer} update={upd}/></div>}
+            </div>
+          </div>
+          {/* RIGHT RAIL — Live preview */}
+          <div className="studio-right">
+            <div className="preview-card">
+              <div className="preview-tabs">
+                <button className={"preview-tab "+(step!==5&&step!==6?"active":"")} onClick={()=>setStep(0)}>Preview</button>
+                <button className={"preview-tab "+(step===5?"active":"")} onClick={()=>setStep(5)}>Spec</button>
+                <button className={"preview-tab "+(step===6?"active":"")} onClick={()=>setStep(6)}>Simulate</button>
+              </div>
+              {step!==5&&step!==6&&<>
+                <div className="preview-section-label">Plain English</div>
+                <div className="preview-plain">
+                  <span className={"pchip "+(offer.wpre?"preload":offer.reward?.toLowerCase()||"cashback")} style={{marginRight:6}}>
+                    <span className="pchip-dot" style={{background:DOT_COLORS[offer.wpre?"Pre-load":offer.reward]||"var(--ink3)"}}/>{offer.wpre?"Pre-load":offer.reward}
+                  </span>
+                  for <b>{offer.segments?.join(", ")||"—"}</b> users.
+                  {offer.ctMode==="first"?" <b>First session only</b> —":""}
+                  {offer.reward==="Cashback"&&!offer.wpre?" rate steps up: "+offer.tiers?.map(t=>"session #"+t.s+" earns "+t.pct+"%").join(", ")+".":""}
+                  {offer.reward==="Discount"?" "+offer.dpct+"% discount on charging.":""}
+                  {offer.cy?" Capped at <b>₹"+offer.cy+"</b>/session.":""}
+                  {" Runs <b>"+(offer.t||30)+" days</b>."}
+                </div>
+                <div className="preview-section-label">Outcome at a glance</div>
+                {offer.simResult?<>
+                  <div className="preview-outcome">
+                    <div>
+                      <div className="pmetric-label">Per-session</div>
+                      <div className="preview-outcome-val" style={{color:offer.simRoi?.netImpact>=0?"var(--ok)":"var(--bad)"}}>{offer.simRoi?.netImpact>=0?"+":""}₹{(offer.simRoi?.netImpact||(offer.simResult?.totalReward||0)).toFixed(0)}</div>
+                      <div className="muted" style={{fontSize:11,marginTop:4}}>net margin per qualifying session</div>
+                    </div>
+                    <span className={"pchip "+(offer.simRoi?.netImpact>=0?"ok":"bad")}>{offer.simRoi?.netImpact>=0?"+ profitable":"− losing"}</span>
+                  </div>
+                  <div className="preview-outcome-grid">
+                    <div className="preview-outcome-item"><div className="label">Avg reward</div><div className="val">₹{offer.simResult.qualTxns>0?(offer.simResult.totalReward/offer.simResult.qualTxns).toFixed(0):"—"}</div></div>
+                    <div className="preview-outcome-item"><div className="label">Avg net</div><div className="val">₹{offer.simRoi?.avgReward?.toFixed(0)||"—"}</div></div>
+                    <div className="preview-outcome-item"><div className="label">Effective rate</div><div className="val">{offer.simResult.effRate?.toFixed(1)||"—"}%</div></div>
+                    <div className="preview-outcome-item"><div className="label">Breakeven</div><div className="val">{offer.simRoi?.breakeven||"Every session"}</div></div>
+                  </div>
+                </>:<div className="muted" style={{fontSize:13,padding:"20px 0"}}>Run a simulation to see outcome metrics</div>}
+                <div className="preview-section-label">Risks & checks</div>
+                {offer.simRoi?.risks?.length>0?offer.simRoi.risks.map((r,i)=><div key={i} className="preview-risk">
+                  <div className="preview-risk-dot" style={{background:r.type==="ok"?"var(--ok-soft)":r.type==="warn"?"var(--warn-soft)":"var(--bad-soft)",color:r.type==="ok"?"var(--ok)":r.type==="warn"?"var(--warn)":"var(--bad)"}}>{r.type==="ok"?"✓":"!"}</div>
+                  <div>{r.msg}</div>
+                </div>):<div className="muted" style={{fontSize:12}}>Run simulation to generate risk checks</div>}
+                <button className="sim-button" onClick={()=>setStep(6)}>Run full simulation →</button>
+              </>}
+              {step===5&&<SummaryStep offer={offer} campaignName={activeCampaign?.name}/>}
+              {step===6&&<SimulateStep offer={offer} txns={txns} setTxns={setTxns} marginPct={marginPct} onSaveSim={(simData)=>{setOffers(p=>p.map(o=>(o._id||o.id)===cid?{...o,...simData}:o));if(cid){api("/offers?id="+cid,{method:"PUT",body:simData}).catch(()=>{})}}}/>}
+            </div>
+          </div>
+        </div>
       </>}
     </div></div>
     <AIDrawer offer={offer} offers={offers} open={aiOpen} onClose={()=>setAiOpen(false)} step={step} lastSim={lastSim}/>
