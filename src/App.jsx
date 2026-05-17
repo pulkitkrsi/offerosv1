@@ -407,7 +407,33 @@ input[type=text],input[type=number],input[type=date],input[type=password],select
 .bar-wrap{height:3px;background:var(--bg3);border-radius:2px;overflow:hidden}.bar-fill{height:100%;border-radius:2px}
 .composition-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:24px}
 @media(max-width:900px){.studio{grid-template-columns:1fr}.studio-right{position:static}.offer-table-head,.offer-table-row{grid-template-columns:1fr;gap:4px}.composition-grid{grid-template-columns:1fr}}
+
+/* Scale Impact inside preview rail — single column */
+.preview-card .wif-grid{grid-template-columns:1fr;gap:16px}
+.preview-card .wif-headline{grid-template-columns:1fr;gap:12px}
+.preview-card .wif-headline-block{border-right:none;border-bottom:1px solid var(--line);padding:0 0 12px}
+.preview-card .wif-headline-block:last-child{border-bottom:none;padding-bottom:0}
+.preview-card .wif-knob-val{font-size:20px}
+.preview-card .wif-headline-val{font-size:24px}
+.preview-card .wif-knob{padding:12px 14px}
+.preview-card .metrics{grid-template-columns:1fr 1fr}
+.preview-card .mc{padding:12px}
+.preview-card .mc-val{font-size:20px}
+.preview-card .result-tbl{font-size:11px}
+.preview-card .result-tbl th,.preview-card .result-tbl td{padding:6px 8px}
+.preview-card .card{padding:14px;margin-bottom:10px}
+.preview-card .card-title{font-size:16px;margin-bottom:10px}
+
+/* Simulation fields inside preview rail */
+.preview-card .txn-hdr,.preview-card .txn-row{grid-template-columns:1fr 1fr 1fr 28px;gap:6px;margin-bottom:4px}
+.preview-card .txn-hdr span{font-size:9px}
+.preview-card input[type=date],.preview-card input[type=number]{padding:8px 10px;font-size:12px}
+.preview-card .sample-btn{padding:10px;font-size:12px;margin-bottom:10px}
+.preview-card .btn-dashed{padding:8px;font-size:11px}
+.preview-card .scroll-x{overflow-x:auto}
 `;
+
+
 
 
 
@@ -1240,12 +1266,12 @@ export default function App(){
                   <span className={"pchip "+(offer.wpre?"preload":offer.reward?.toLowerCase()||"cashback")} style={{marginRight:6}}>
                     <span className="pchip-dot" style={{background:DOT_COLORS[offer.wpre?"Pre-load":offer.reward]||"var(--ink3)"}}/>{offer.wpre?"Pre-load":offer.reward}
                   </span>
-                  for <b>{offer.segments?.join(", ")||"—"}</b> users.
-                  {offer.ctMode==="first"?" <b>First session only</b> —":""}
-                  {offer.reward==="Cashback"&&!offer.wpre?" rate steps up: "+offer.tiers?.map(t=>"session #"+t.s+" earns "+t.pct+"%").join(", ")+".":""}
-                  {offer.reward==="Discount"?" "+offer.dpct+"% discount on charging.":""}
-                  {offer.cy?" Capped at <b>₹"+offer.cy+"</b>/session.":""}
-                  {" Runs <b>"+(offer.t||30)+" days</b>."}
+                  {" for "}<b>{offer.segments?.join(", ")||"—"}</b>{" users. "}
+                  {offer.ctMode==="first"&&<><b>First session only</b>{" — "}</>}
+                  {offer.reward==="Cashback"&&!offer.wpre&&(" rate steps up: "+offer.tiers?.map(t=>"session #"+t.s+" earns "+t.pct+"%").join(", ")+". ")}
+                  {offer.reward==="Discount"&&(" "+offer.dpct+"% discount on charging. ")}
+                  {offer.cy&&<>{"Capped at "}<b>{"₹"+offer.cy}</b>{"/session. "}</>}
+                  {"Runs "}<b>{offer.t||30}{" days"}</b>{"."}
                 </div>
                 <div className="preview-section-label">Outcome at a glance</div>
                 {offer.simResult?<>
