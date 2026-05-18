@@ -1194,8 +1194,8 @@ export default function App(){
             <button className="pbtn primary sm" onClick={()=>upd({offerStatus:"ready"})}>Send for review</button>
           </div>
         </div>
-        <div className="studio">
-          <div className="studio-left">
+        <div className={step===6?"":"studio"}>
+          {step!==6&&<div className="studio-left">
             {/* Section 01 — Audience */}
             <div className="studio-section">
               <div className="studio-section-head" onClick={()=>setStep(step===0?-1:0)}>
@@ -1251,16 +1251,16 @@ export default function App(){
               {step!==4&&<div className="studio-section-summary">{offer.t} days{offer.startDate?" · Starts "+offer.startDate:""}{offer.ce?" · cashback expires "+offer.ce+"d after earn":""}</div>}
               {step===4&&<div className="studio-section-body"><DurationStep offer={offer} update={upd}/></div>}
             </div>
-          </div>
-          {/* RIGHT RAIL — Live preview */}
-          <div className="studio-right">
+          </div>}
+          {/* RIGHT RAIL — Live preview (hidden when Simulate is full-width) */}
+          {step!==6&&<div className="studio-right">
             <div className="preview-card">
               <div className="preview-tabs">
                 <button className={"preview-tab "+(step!==5&&step!==6?"active":"")} onClick={()=>setStep(0)}>Preview</button>
                 <button className={"preview-tab "+(step===5?"active":"")} onClick={()=>setStep(5)}>Spec</button>
                 <button className={"preview-tab "+(step===6?"active":"")} onClick={()=>setStep(6)}>Simulate</button>
               </div>
-              {step!==5&&step!==6&&<>
+              {step!==5&&<>
                 <div className="preview-section-label">Plain English</div>
                 <div className="preview-plain">
                   <span className={"pchip "+(offer.wpre?"preload":offer.reward?.toLowerCase()||"cashback")} style={{marginRight:6}}>
@@ -1298,9 +1298,16 @@ export default function App(){
                 <button className="sim-button" onClick={()=>setStep(6)}>Run full simulation →</button>
               </>}
               {step===5&&<SummaryStep offer={offer} campaignName={activeCampaign?.name}/>}
-              {step===6&&<SimulateStep offer={offer} txns={txns} setTxns={setTxns} marginPct={marginPct} onSaveSim={(simData)=>{setOffers(p=>p.map(o=>(o._id||o.id)===cid?{...o,...simData}:o));if(cid){api("/offers?id="+cid,{method:"PUT",body:simData}).catch(()=>{})}}}/>}
             </div>
-          </div>
+          </div>}
+          {/* SIMULATE — Full width when active */}
+          {step===6&&<div>
+            <div className="spread" style={{marginBottom:18}}>
+              <div><div className="eyebrow">Scenarios</div><h2 style={{fontFamily:"var(--display)",fontSize:28}}>Test & simulate</h2></div>
+              <button className="pbtn sm" onClick={()=>setStep(0)}>← Back to studio</button>
+            </div>
+            <SimulateStep offer={offer} txns={txns} setTxns={setTxns} marginPct={marginPct} onSaveSim={(simData)=>{setOffers(p=>p.map(o=>(o._id||o.id)===cid?{...o,...simData}:o));if(cid){api("/offers?id="+cid,{method:"PUT",body:simData}).catch(()=>{})}}}/>
+          </div>}
         </div>
       </>}
     </div></div>
